@@ -1,0 +1,13 @@
+{
+  "extends": "plasmo/templates/tsconfig.base",
+  "exclude": ["node_modules"],
+  "include": [".plasmo/index.d.ts", "./**/*.ts", "./**/*.vue"],
+  "compilerOptions": {
+    "allowJs": true,
+    "paths": {
+      "~*": ["./*"]
+    },
+    "types": ["vue", "@types/chrome"],
+    "baseUrl": "."
+  }
+}

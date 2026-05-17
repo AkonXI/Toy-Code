@@ -1,0 +1,40 @@
+{
+  "name": "emoji-mouse",
+  "displayName": "emoji mouse",
+  "version": "0.0.1",
+  "description": "",
+  "author": "AKonXI <zhangkb0402@gmail.com>",
+  "scripts": {
+    "dev": "plasmo dev",
+    "build": "plasmo build",
+    "package": "plasmo package"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "@plasmohq/storage": "^1.15.0",
+    "ant-design-vue": "^4.2.6",
+    "lodash-es": "^4.18.1",
+    "plasmo": "0.90.3",
+    "vue": "^3.5.34"
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@types/chrome": "0.0.271",
+    "@types/node": "22.5.5",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
+    "prettier": "^3.8.3",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
+  },
+  "manifest": {
+    "host_permissions": [
+      "https://*/*",
+      "http://*/*"
+    ],
+    "permissions": [
+      "storage",
+      "tabs"
+    ]
+  }
+}

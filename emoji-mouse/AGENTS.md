@@ -6,17 +6,17 @@
 
 ## 技术栈
 
-| 层级      | 技术                                      |
-| --------- | ----------------------------------------- |
-| 扩展框架  | Plasmo 0.90.3（Manifest V3）              |
-| UI 框架   | Vue 3.5（Composition API）                |
-| UI 组件   | Ant Design Vue 4（popup 和 options 页面） |
-| 样式      | Tailwind CSS 3                            |
-| 语言      | TypeScript 5.6                            |
-| 构建/打包 | Plasmo（基于 Parcel）                     |
-| 包管理器  | pnpm                                      |
-| 格式化    | Prettier 3 + import sort 插件             |
-| CI/CD     | GitHub Actions（发布到 Chrome/Edge 商店） |
+| 层级      | 技术                                                |
+| --------- | --------------------------------------------------- |
+| 扩展框架  | Plasmo 0.90.3（Manifest V3）                        |
+| UI 框架   | Vue 3.5（Composition API，`<script setup>`）        |
+| UI 组件   | Ant Design Vue 4（按需引入，仅 popup/options 页面） |
+| 样式      | Tailwind CSS 3                                      |
+| 语言      | TypeScript 5.7                                      |
+| 构建/打包 | Plasmo（基于 Parcel）                               |
+| 包管理器  | pnpm                                                |
+| 格式化    | Prettier 3 + import sort 插件                       |
+| CI/CD     | GitHub Actions（发布到 Chrome/Edge 商店）           |
 
 ## 命令
 
@@ -35,16 +35,13 @@ npx tsc --noEmit   # 类型检查
 ```
 emoji-mouse/
 ├── contents/
-│   └── emoji-mouse.vue    # 内容脚本：监听 mousemove 生成下落 emoji
+│   └── emoji-mouse.vue    # 内容脚本：三种动画类型 + rAF/keyframe 混合
 ├── background.ts          # Service worker：消息路由 + 存储
-├── popup.vue              # 扩展弹窗：单个标签页开关
-├── options.vue            # 选项页：emoji/时长/大小 配置
-├── initOption.ts          # 默认选项值
-├── devtools.vue           # DevTools 面板入口（占位）
-├── sandbox.ts             # Sandbox eval 页面（⚠️ 安全风险）
+├── popup.vue              # 扩展弹窗：深色主题、状态切换
+├── options.vue            # 选项页：emoji/时长/大小/透明度 配置
+├── initOption.ts          # 默认选项值 + EmojiOptions 接口
+├── sandbox.ts             # Plasmo sandbox 页面（eval 安全沙盒）
 ├── style.css              # Tailwind 指令
-├── panels/                # DevTools 子页面（占位）
-├── tabs/                  # 新标签页面（占位）
 └── assets/                # 扩展图标
 ```
 
@@ -66,6 +63,7 @@ Popup ──sendMessage──→ Background (SW) ←──sendMessage── Cont
 | ----------------------- | -------------------- | -------------------------- |
 | `get-options`           | 任意 → SW            | 从 storage 读取 emoji 配置 |
 | `update-option`         | options → SW         | 保存 emoji 配置到 storage  |
+| `options-updated`       | SW → content         | 广播配置变更到所有标签页   |
 | `get-current-status`    | popup/content → SW   | 检查当前标签页是否启用     |
 | `change-current-status` | popup → SW + content | 切换当前标签页启停         |
 | `get-current-tabId`     | popup → SW           | 获取当前活动标签页 ID      |
@@ -74,6 +72,14 @@ Popup ──sendMessage──→ Background (SW) ←──sendMessage── Cont
 
 - **sync/local**（`@plasmohq/storage`）： `options` — 全局 emoji 配置
 - **session**：`filter-tabs` — 已禁用 emoji 的标签页 ID 数组
+
+### 数据同步策略
+
+所有跨 storage 的读写都使用 `{ ...initOption, ...data }` 合并，确保新增字段始终有默认值：
+
+- `background.ts`：保存时合并后写入，读取时合并后返回，广播时发合并数据
+- `options.vue`：加载时合并到表单，重置时展开副本
+- `contents/emoji-mouse.vue`：接收消息/初始加载时合并
 
 ## 代码规范
 
@@ -85,40 +91,44 @@ Popup ──sendMessage──→ Background (SW) ←──sendMessage── Cont
   4. `@plasmohq/*`
   5. `~*`（根目录别名）
   6. `./`（相对路径）
-- **Vue 风格**：新文件优先使用 `<script setup>`（现有的 Options API `setup()` 应迁移）
+- **Vue 风格**：全部使用 `<script setup lang="ts">`
 - **路径别名**： `~` 映射到项目根目录（例：`import initOption from "~initOption"`）
+- **按需引入**：antd 使用 `ant-design-vue/es/xxx` 个体路径，lodash 使用 `lodash-es/throttle`
 
-## 已知问题（改进计划）
+## 动画系统
 
-### P0 — Bug
+### 三种动画类型
 
-- **`options.vue:52`**：透明度 `<input-number>` 绑定了 `FormData.stay` 而非应有的专用字段 `FormData.opacity`。`initOption.ts` 也缺少 `opacity` 字段。
-- **`contents/emoji-mouse.vue:77`**：throttle 的 `duration` 在 `onMounted` 时闭包捕获一次，后续修改配置不会生效，必须刷新页面。
-- **`popup.vue:35-38`**：`watchEffect` 在每次响应式更新时都会新增一个 `message` 监听器导致泄露。改用 `onMounted` + `onUnmounted`。
+内容脚本在模块加载时生成 18 个 CSS `@keyframes`（注入到页面 `<style>`）：
 
-### P1 — 性能 / 包体积
+| 类型     | 前缀 | 数量 | 效果                                          |
+| -------- | ---- | ---- | --------------------------------------------- |
+| 水果入水 | `w`  | 5    | 减速坠落 → 贝塞尔上浮 + 淡出（5 种水平偏移）  |
+| 气球飞走 | `b`  | 5    | 加速升空 → 减速飘走 + 放大 + 淡出（5 个角度） |
+| 火花四溅 | `s`  | 8    | 抛物线弹出 + 缩小 + 淡出（8 个方向）          |
 
-- **ant-design-vue 全量引入**导致生产包约 4MB，实际只用了 6 个组件（Switch、Button、Radio、Form、Select、InputNumber、message）。建议使用 `unplugin-vue-components` 按需引入。
-- **lodash-es** 只用了 `throttle` — 用约 10 行代码实现即可移除依赖。
-- `document.querySelector("body")` 在每次 mousemove 事件中执行 — 将 `document.body` 缓存到 throttle 外部。
-- 每个 emoji 用 `setTimeout` 清理 — 改用 `animationend` 事件。
+### 关键帧生成
 
-### P2 — 安全 / 架构
+`generateStyles(opacity)` 函数按全局透明度生成全部 keyframe，所有 `opacity:1` 替换为 `opacity:${opacity}`。透明度变更时 `watch` 自动重写 `<style>` 内容。
 
-- **`sandbox.ts`** 暴露 `eval()` — 如未使用应移除。
-- **权限** `clipboardRead`、`clipboardWrite`、`scripting` 声明但未使用 — 从 manifest 移除。
-- **内容脚本匹配所有页面**（`https://*/*`、`http://*/*`） — 考虑通过 `activeTab` + `chrome.scripting` 按需注入。
-- **DevTools 面板**（`devtools.vue`、`panels/`）是占位内容 — 移除以减小包体积。
-- **CI 使用 Node 16**（已 EOL） — 升级到 Node 20+。
+### 动画流程
 
-### P3 — 代码质量
+- emoji `<span>` 直接挂 `document.body`，`position: fixed` 定位在鼠标位置
+- CSS `@keyframes` 驱动 `transform: translate()` 位移动画
+- 各关键帧内嵌 `animation-timing-function` 控制分段缓动（`ease-in`, `ease-out`, `cubic-bezier`）
+- `animationend` 事件自动移除 DOM
+- throttle 通过 `lodash-es/throttle` 控制生成间隔（默认 250ms）
 
-- **`contents/emoji-mouse.vue:33-48`**：硬编码的默认 emoji 列表 — 移入 `initOption.ts`。
-- **`options.vue`**： `Input` 已引入但未使用； `Row` 在模板中写成 `<row>`（HTML 大小写不敏感）。
-- **缺少 TypeScript 接口** 定义选项结构 — 新增 `interface EmojiOptions`。
-- **`chrome.runtime.sendMessage` 回调缺少错误处理**。
-- **拼写错误** `popup.vue:3` — `emoji mosue` → `emoji mouse`。
-- **`contents/emoji-mouse.vue`** 使用 Options API，其他文件用 `<script setup>` — 统一风格。
-- `options.vue:80-82` 注释掉的 emoji 数组 — 测试数据，保留。
-- **`background.ts:5`** — `export {}` 无实际作用。
-- **未配置测试**。
+### EmojiOptions 接口
+
+```ts
+interface EmojiOptions {
+  status: boolean // 全局开关
+  emojis: string[] // 自定义 emoji 列表
+  duration: number // 掉落间隔 (ms)
+  min: number // 最小尺寸 (px)
+  max: number // 最大尺寸 (px)
+  stay: number // 动画时长 (ms)
+  opacity: number // 全局透明度 (0-1)
+}
+```

@@ -47,25 +47,28 @@
 <script setup lang="ts">
 import { CheckOutlined, CloseOutlined } from "@ant-design/icons-vue"
 import Switch from "ant-design-vue/es/switch"
+import type { App } from "vue"
 import { onMounted, onUnmounted, ref } from "vue"
 
 const status = ref(true)
 
 defineOptions({
-  prepare(app) {}
+  prepare(_app: App) {}
 })
-const iframeRef = ref<HTMLIFrameElement>(null)
+const iframeRef = ref<HTMLIFrameElement | null>(null)
 
-const changeSatus = (v) => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, {
+const changeSatus = (v: boolean) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+    const tabId = tabs[0].id
+    if (tabId === undefined) return
+    chrome.tabs.sendMessage(tabId, {
       type: "change-current-status",
-      data: { currentPageStatus: v, id: tabs[0].id }
+      data: { currentPageStatus: v, id: tabId }
     })
     chrome.runtime.sendMessage(
       {
         type: "change-current-status",
-        data: { currentPageStatus: v, id: tabs[0].id }
+        data: { currentPageStatus: v, id: tabId }
       },
       () => {
         if (chrome.runtime.lastError) return
@@ -74,16 +77,19 @@ const changeSatus = (v) => {
     )
   })
 }
+
 const handleMessage = (event: MessageEvent) => {
   console.log("EVAL output: " + event.data)
 }
+
 onMounted(() => {
   window.addEventListener("message", handleMessage)
-  chrome.runtime.sendMessage({ type: "get-current-status" }, (response) => {
+  chrome.runtime.sendMessage({ type: "get-current-status" }, (response: unknown) => {
     if (chrome.runtime.lastError) return
-    status.value = response
+    status.value = response as boolean
   })
 })
+
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage)
 })

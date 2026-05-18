@@ -102,7 +102,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { EmojiOptions } from "~initOption"
 import Button from "ant-design-vue/es/button"
 import Col from "ant-design-vue/es/col"
 import Form, { FormItem, FormItemRest } from "ant-design-vue/es/form"
@@ -115,27 +116,24 @@ import { onMounted, ref } from "vue"
 
 import initOption from "~initOption"
 
-const FormData = ref({ ...initOption })
-const options = ref([])
-// ❤️, 🧡, 💛, 💚, 💙, 💜, 🤎, 🖤, 🤍
+const FormData = ref<EmojiOptions>({ ...initOption })
+const options = ref<{ label: string; value: string }[]>([])
 
-// 🍇, 🍈, 🍉, 🍊, 🍋, 🍌, 🍍, 🥭, 🍎, 🍒, 🍓, 🥑
-
-const saveConfig = async () => {
+const saveConfig = () => {
   chrome.runtime.sendMessage(
     { type: "update-option", data: FormData.value },
-    (ret) => {
+    () => {
       if (chrome.runtime.lastError) return
       message.success("保存成功")
     }
   )
 }
 
-const resetConfig = async () => {
+const resetConfig = () => {
   const defaults = { ...initOption }
   chrome.runtime.sendMessage(
     { type: "update-option", data: defaults },
-    (ret) => {
+    () => {
       if (chrome.runtime.lastError) return
       FormData.value = defaults
       message.success("重置成功")
@@ -149,7 +147,7 @@ onMounted(() => {
   })
 })
 defineOptions({
-  prepare(app) {
+  prepare(_app: unknown) {
     // Use any plugins here:
     // app.use
   }

@@ -2,21 +2,20 @@
 
 ## 项目概述
 
-**emoji-mouse** — 一个浏览器扩展（Chrome + Edge），在用户鼠标光标后渲染下落的 emoji 尾迹。基于 [Plasmo](https://docs.plasmo.com/) + Vue 3 构建。
+**emoji-mouse** — 一个浏览器扩展（Chrome + Edge），在用户鼠标光标后渲染下落的 emoji 尾迹。基于 [Plasmo](https://docs.plasmo.com/) + Vue 3 + TypeScript 构建。
 
 ## 技术栈
 
 | 层级      | 技术                                                |
 | --------- | --------------------------------------------------- |
 | 扩展框架  | Plasmo 0.90.3（Manifest V3）                        |
-| UI 框架   | Vue 3.5（Composition API，`<script setup>`）        |
+| UI 框架   | Vue 3.5（Composition API，`<script setup lang="ts">`）|
 | UI 组件   | Ant Design Vue 4（按需引入，仅 popup/options 页面） |
 | 样式      | Tailwind CSS 3                                      |
-| 语言      | TypeScript 5.7                                      |
+| 语言      | TypeScript（全部文件已类型化）                      |
 | 构建/打包 | Plasmo（基于 Parcel）                               |
 | 包管理器  | pnpm                                                |
 | 格式化    | Prettier 3 + import sort 插件                       |
-| CI/CD     | GitHub Actions（发布到 Chrome/Edge 商店）           |
 
 ## 命令
 
@@ -24,7 +23,6 @@
 pnpm dev          # 启动开发服务器（watch 模式，输出到 build/chrome-mv3-dev/）
 pnpm build        # 生产构建（输出到 build/chrome-mv3-prod/）
 pnpm package      # 构建 + 生成 .zip 用于商店提交
-pnpm lint         # 尚未配置 — 直接用 Prettier：
 npx prettier --check .
 npx prettier --write .
 npx tsc --noEmit   # 类型检查
@@ -36,11 +34,13 @@ npx tsc --noEmit   # 类型检查
 emoji-mouse/
 ├── contents/
 │   └── emoji-mouse.vue    # 内容脚本：三种动画类型 + rAF/keyframe 混合
-├── background.ts          # Service worker：消息路由 + 存储
+├── background.ts          # Service worker：消息路由 + 存储（含完整消息类型定义）
 ├── popup.vue              # 扩展弹窗：深色主题、状态切换
 ├── options.vue            # 选项页：emoji/时长/大小/透明度 配置
 ├── initOption.ts          # 默认选项值 + EmojiOptions 接口
 ├── sandbox.ts             # Plasmo sandbox 页面（eval 安全沙盒）
+├── postcss.config.ts      # PostCSS 配置
+├── tailwind.config.ts     # Tailwind 配置
 ├── style.css              # Tailwind 指令
 └── assets/                # 扩展图标
 ```
@@ -94,6 +94,7 @@ Popup ──sendMessage──→ Background (SW) ←──sendMessage── Cont
 - **Vue 风格**：全部使用 `<script setup lang="ts">`
 - **路径别名**： `~` 映射到项目根目录（例：`import initOption from "~initOption"`）
 - **按需引入**：antd 使用 `ant-design-vue/es/xxx` 个体路径，lodash 使用 `lodash-es/throttle`
+- **类型安全**：所有函数参数、返回值、Chrome API 回调均有类型注释
 
 ## 动画系统
 

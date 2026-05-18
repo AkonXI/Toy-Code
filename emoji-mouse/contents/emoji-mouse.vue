@@ -1,5 +1,6 @@
 <template></template>
 <script setup lang="ts">
+import type { EmojiOptions } from "~initOption"
 import throttle from "lodash-es/throttle"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 
@@ -23,16 +24,15 @@ const DEFAULT_EMOJIS = [
   "🍹"
 ]
 
-// —— 动画方向数据 ——
-const waterDrifts = [-20, -8, 0, 8, 20]
-const balloonDirs = [
+const waterDrifts: number[] = [-20, -8, 0, 8, 20]
+const balloonDirs: { dx: number; dy: number }[] = [
   { dx: -180, dy: -250 },
   { dx: -80, dy: -260 },
   { dx: 0, dy: -270 },
   { dx: 80, dy: -260 },
   { dx: 180, dy: -250 }
 ]
-const sparkDirs = [
+const sparkDirs: { dx: number; dy: number }[] = [
   { dx: 0, dy: -200 },
   { dx: 150, dy: -150 },
   { dx: 200, dy: 0 },
@@ -43,18 +43,15 @@ const sparkDirs = [
   { dx: -150, dy: -150 }
 ]
 
-// —— 预计算动画名称列表 ——
 const animNames: string[] = []
 for (let i = 0; i < waterDrifts.length; i++) animNames.push(`w${i}`)
 for (let i = 0; i < balloonDirs.length; i++) animNames.push(`b${i}`)
 for (let i = 0; i < sparkDirs.length; i++) animNames.push(`s${i}`)
 
-// —— 按透明度生成 @keyframes ——
 const generateStyles = (op: number): string => {
   let css = ""
 
-  // 类型1: 水果入水
-  waterDrifts.forEach((drift, i) => {
+  waterDrifts.forEach((drift: number, i: number) => {
     css += `@keyframes w${i}{`
     css += `0%{transform:translate(0,0);opacity:0;animation-timing-function:ease-in}`
     css += `10%{opacity:${op};animation-timing-function:cubic-bezier(.65,0,.95,0)}`
@@ -63,8 +60,7 @@ const generateStyles = (op: number): string => {
     css += `}`
   })
 
-  // 类型2: 气球飞走
-  balloonDirs.forEach((dir, i) => {
+  balloonDirs.forEach((dir: { dx: number; dy: number }, i: number) => {
     css += `@keyframes b${i}{`
     css += `0%{transform:translate(0,0) scale(0.4);opacity:0;animation-timing-function:ease-out}`
     css += `12%{opacity:${op};transform:translate(${dir.dx * 0.1}px,${dir.dy * 0.05}px) scale(0.8);animation-timing-function:ease-in}`
@@ -73,8 +69,7 @@ const generateStyles = (op: number): string => {
     css += `}`
   })
 
-  // 类型3: 火花四溅
-  sparkDirs.forEach((dir, i) => {
+  sparkDirs.forEach((dir: { dx: number; dy: number }, i: number) => {
     css += `@keyframes s${i}{`
     css += `0%{transform:translate(0,0) scale(0.3);opacity:0}`
     css += `8%{opacity:${op};transform:translate(${dir.dx * 0.1}px,${dir.dy * 0.1 - 40}px) scale(1)}`
@@ -91,26 +86,25 @@ const styleEl = document.createElement("style")
 styleEl.textContent = generateStyles(initOption.opacity)
 document.head.appendChild(styleEl)
 
-// —— 业务逻辑 ——
 const currentPageStatus = ref(true)
-const options = ref(initOption)
+const options = ref<EmojiOptions>({ ...initOption })
 
-const images = computed(() => {
+const images = computed((): string[] => {
   return options.value.emojis?.length ? options.value.emojis : DEFAULT_EMOJIS
 })
 
-const compStay = computed(() => {
+const compStay = computed((): string => {
   return options.value.stay / 1000 + "s"
 })
 
 let throttledHandler: ReturnType<typeof throttle> | null = null
 
-const createThrottledHandler = () => {
+const createThrottledHandler = (): void => {
   if (throttledHandler) {
     document.removeEventListener("mousemove", throttledHandler)
   }
   const body = document.body
-  throttledHandler = throttle(function (e: MouseEvent) {
+  throttledHandler = throttle(function (e: MouseEvent): void {
     if (currentPageStatus.value && options.value.status) {
       const icon = images.value[Math.floor(Math.random() * images.value.length)]
       const size =
@@ -151,28 +145,43 @@ watch(
 
 watch(
   () => options.value.opacity,
-  (op) => {
+  (op: number) => {
     styleEl.textContent = generateStyles(op)
   }
 )
 
+interface ChangeStatusMsg {
+  type: "change-current-status"
+  data: { currentPageStatus: boolean }
+}
+
+interface OptionsUpdatedMsg {
+  type: "options-updated"
+  data: Partial<EmojiOptions>
+}
+
+type ContentMessage = ChangeStatusMsg | OptionsUpdatedMsg
+
 onMounted(() => {
-  chrome.runtime.sendMessage({ type: "get-current-status" }, (response) => {
+  chrome.runtime.sendMessage({ type: "get-current-status" }, (response: unknown) => {
     if (chrome.runtime.lastError) return
-    currentPageStatus.value = response
-  })
-  chrome.runtime.onMessage.addListener((event, sender, callable) => {
-    if (event.type == "change-current-status") {
-      currentPageStatus.value = event.data.currentPageStatus
-    }
-    if (event.type == "options-updated") {
-      options.value = { ...initOption, ...event.data }
-    }
+    currentPageStatus.value = response as boolean
   })
 
-  chrome.runtime.sendMessage({ type: "get-options" }, (v) => {
+  chrome.runtime.onMessage.addListener(
+    (event: ContentMessage, _sender: chrome.runtime.MessageSender, _callable: (response: unknown) => void) => {
+      if (event.type === "change-current-status") {
+        currentPageStatus.value = event.data.currentPageStatus
+      }
+      if (event.type === "options-updated") {
+        options.value = { ...initOption, ...event.data }
+      }
+    }
+  )
+
+  chrome.runtime.sendMessage({ type: "get-options" }, (v: unknown) => {
     if (chrome.runtime.lastError) return
-    options.value = { ...initOption, ...v }
+    options.value = { ...initOption, ...(v as Partial<EmojiOptions>) }
     createThrottledHandler()
   })
 })

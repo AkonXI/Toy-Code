@@ -1,4 +1,5 @@
 import { Storage } from "@plasmohq/storage"
+import type { EmojiOptions } from "~initOption"
 
 import initOption from "~initOption"
 
@@ -6,79 +7,109 @@ const storage = new Storage()
 
 console.log("background loaded")
 storage.watch({
-  options: (v) => {
+  options: (_v: { newValue: EmojiOptions | undefined; oldValue: EmojiOptions | undefined }) => {
     // console.log("status-change")
-    // chrome.runtime.sendMessage({
-    //   type: "status-change",
-    //   data: {
-    //     status: v.newValue.status
-    //   }
-    // })
   }
 })
+
 const sStorage = new Storage({
   area: "session"
 })
 
-chrome.runtime.onMessage.addListener((event, sender, callable) => {
-  ;(async () => {
-    if (event.type == "update-option") {
-      const merged = { ...initOption, ...event.data }
-      storage.set("options", merged)
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach((tab) => {
-          chrome.tabs
-            .sendMessage(tab.id!, {
-              type: "options-updated",
-              data: merged
-            })
-            .catch(() => {})
+interface UpdateOptionMsg {
+  type: "update-option"
+  data: Partial<EmojiOptions>
+}
+
+interface GetOptionsMsg {
+  type: "get-options"
+}
+
+interface ChangeStatusMsg {
+  type: "change-current-status"
+  data: { currentPageStatus: boolean; id: number }
+}
+
+interface GetTabIdMsg {
+  type: "get-current-tabId"
+}
+
+interface GetStatusMsg {
+  type: "get-current-status"
+}
+
+type Message = UpdateOptionMsg | GetOptionsMsg | ChangeStatusMsg | GetTabIdMsg | GetStatusMsg
+
+chrome.runtime.onMessage.addListener(
+  (event: Message, _sender: chrome.runtime.MessageSender, callable: (response: unknown) => void) => {
+    ;(async () => {
+      if (event.type === "update-option") {
+        const merged: EmojiOptions = { ...initOption, ...event.data }
+        await storage.set("options", merged)
+        chrome.tabs.query({}, (tabs: chrome.tabs.Tab[]) => {
+          tabs.forEach((tab: chrome.tabs.Tab) => {
+            if (tab.id !== undefined) {
+              chrome.tabs
+                .sendMessage(tab.id, {
+                  type: "options-updated",
+                  data: merged
+                })
+                .catch((_err: unknown) => {})
+            }
+          })
         })
-      })
-      callable(storage)
-    }
-    if (event.type == "get-options") {
-      const options = await storage.get("options")
-      callable({ ...initOption, ...(options || {}) })
-    }
-    if (event.type == "change-current-status") {
-      let filterTabs = ((await sStorage.get("filter-tabs")) as any[]) ?? []
-
-      if (!event.data.currentPageStatus) {
-        //切换成false 加上黑名单
-        filterTabs.push(event.data.id)
-        filterTabs = [...new Set(filterTabs)]
-      } else {
-        filterTabs = filterTabs.filter((v) => v !== event.data.id)
+        callable(storage)
       }
-      sStorage.set("filter-tabs", filterTabs)
-    }
-    if (event.type == "get-current-tabId") {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        callable(tabs[0].id)
-      })
-    }
 
-    if (event.type == "get-current-status") {
-      const filterTabs = ((await sStorage.get("filter-tabs")) as any[]) ?? []
-      console.log(filterTabs)
+      if (event.type === "get-options") {
+        const options = await storage.get<EmojiOptions>("options")
+        callable({ ...initOption, ...(options || {}) })
+      }
 
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (filterTabs.some((v) => v == tabs[0].id)) {
-          callable(false)
+      if (event.type === "change-current-status") {
+        let filterTabs = ((await sStorage.get<number[]>("filter-tabs")) as number[]) ?? []
+
+        if (!event.data.currentPageStatus) {
+          filterTabs.push(event.data.id)
+          filterTabs = [...new Set(filterTabs)]
         } else {
-          callable(true)
+          filterTabs = filterTabs.filter((v: number) => v !== event.data.id)
         }
-      })
-    }
-  })()
+        await sStorage.set("filter-tabs", filterTabs)
+      }
 
-  return true
-})
-chrome.runtime.onInstalled.addListener((details) => {
+      if (event.type === "get-current-tabId") {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+          callable(tabs[0]?.id)
+        })
+      }
+
+      if (event.type === "get-current-status") {
+        const filterTabs = ((await sStorage.get<number[]>("filter-tabs")) as number[]) ?? []
+        console.log(filterTabs)
+
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+          const currentTabId = tabs[0]?.id
+          if (filterTabs.some((v: number) => v === currentTabId)) {
+            callable(false)
+          } else {
+            callable(true)
+          }
+        })
+      }
+    })()
+
+    return true
+  }
+)
+
+chrome.runtime.onInstalled.addListener((details: chrome.runtime.InstalledDetails) => {
   console.log("init", details)
   ;(async () => {
-    if (!(await storage.get("options"))) storage.set("options", initOption)
+    const existing = await storage.get<EmojiOptions>("options")
+    if (!existing) {
+      await storage.set("options", initOption)
+    }
   })()
   return true
 })

@@ -1,0 +1,30 @@
+{
+  "name": "spell-check-editor",
+  "private": true,
+  "version": "1.0.0",
+  "description": "富文本拼写检查工具，支持错词纠错定位与一键替换",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tinymce/tinymce-react": "^6.3.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^6.26.0",
+    "tinymce": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/tinymce": "^4.6.9",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3",
+    "vite": "^6.4.2"
+  }
+}

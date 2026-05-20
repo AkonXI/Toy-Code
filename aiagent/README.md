@@ -6,7 +6,7 @@ AI 简历优化后端 —— 上传简历，让 DeepSeek 大模型分析并给�
 
 - **运行时:** Node.js, TypeScript
 - **框架:** Express 5
-- **大模型:** DeepSeek（@ai-sdk/deepseek + @langchain/deepseek）
+- **AI SDK:** Vercel AI SDK v6 + LangChain（@ai-sdk/deepseek + @langchain/deepseek）
 - **向量数据库:** LanceDB
 - **嵌入模型:** @huggingface/transformers（Xenova/bge-small-zh-v1.5）
 - **数据库:** SQLite（better-sqlite3）

@@ -9,7 +9,7 @@
 | 项目 | 简介 | 技术栈 |
 |------|------|--------|
 | [aiagent](./aiagent) | AI 简历优化后端 | Express + DeepSeek + LanceDB + SQLite |
-| [aiagentfe-react](./aiagentfe-react) | 简历优化前端（React） | React 19 + Ant Design 6 + Vite 6 |
+| [aiagentfe-react](./aiagentfe-react) | 简历优化前端（React） | React 19 + Ant Design 6 + Vite 8 |
 | [aiagentfe-vue](./aiagentfe-vue) | 简历优化前端（Vue） | Vue 3 + Element Plus + Pinia |
 | [canvas-anno-vue](./canvas-anno-vue) | 图片标注工具 | Vue 3 + TypeScript + Canvas 2D + Tailwind |
 | [emoji-mouse](./emoji-mouse) | emoji 鼠标拖尾浏览器扩展 | Plasmo + Vue 3 + Ant Design Vue |

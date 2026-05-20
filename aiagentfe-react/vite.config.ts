@@ -9,7 +9,7 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) }
   },
   optimizeDeps: {
-    esbuildOptions: { define: { global: 'globalThis' } }
+    rolldownOptions: { define: { global: 'globalThis' } }
   },
   server: {
     proxy: {

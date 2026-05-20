@@ -25,7 +25,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    esbuildOptions: {
+    rolldownOptions: {
       define: {
         global: 'globalThis'
       }

@@ -5,7 +5,7 @@ AI 简历优化的 React 前端 —— 与 AI 对话优化简历，流式建议 
 ## 技术栈
 
 - **框架:** React 19, TypeScript
-- **构建:** Vite 6
+- **构建:** Vite 8
 - **UI:** Ant Design 6
 - **样式:** Tailwind CSS 4
 - **状态管理:** Zustand 5

@@ -23,12 +23,16 @@
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
+      "@rolldown/binding-win32-x64-msvc",
       "@swc/core",
       "better-sqlite3",
+      "canvas",
+      "core-js",
       "esbuild",
       "lmdb",
       "msgpackr-extract",
       "onnxruntime-node",
+      "protobufjs",
       "sharp"
     ]
   }

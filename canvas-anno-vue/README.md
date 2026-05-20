@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **框架:** Vue 3.4 + TypeScript
-- **构建:** Vite 6 + vue-tsc
+- **构建:** Vite 8 + vue-tsc
 - **渲染:** Canvas 2D（无第三方图形库）
 - **样式:** Tailwind CSS 3
 

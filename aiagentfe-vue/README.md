@@ -5,7 +5,7 @@ AI 简历优化的 Vue 前端 —— 与 AI 对话优化简历，流式建议 + 
 ## 技术栈
 
 - **框架:** Vue 3.5（组合式 API，`<script setup>`）
-- **构建:** Vite 5
+- **构建:** Vite 8
 - **UI:** Element Plus 2
 - **样式:** Tailwind CSS 4
 - **状态管理:** Pinia 3

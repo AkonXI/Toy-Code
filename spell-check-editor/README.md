@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **框架:** React 19, TypeScript
-- **构建:** Vite 6
+- **构建:** Vite 8 + tsc
 - **编辑器:** TinyMCE 7 + @tinymce/tinymce-react 6
 - **路由:** React Router 6
 - **样式:** Tailwind CSS 3

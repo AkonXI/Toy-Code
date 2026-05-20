@@ -1,0 +1,7 @@
+packages:
+  - aiagent
+  - aiagentfe-vue
+  - aiagentfe-react
+  - canvas-anno-vue
+  - emoji-mouse
+  - spell-check-editor

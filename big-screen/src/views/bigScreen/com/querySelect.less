@@ -1,0 +1,120 @@
+.selectDownBodyDark {
+  background: #091e59cc !important;
+  border: 1px solid #245D86 !important;
+
+  .ant-select-dropdown-menu-item {
+    color: #ffffff;
+    font-size: 12px;
+  }
+
+  .ant-select-tree li .ant-select-tree-node-content-wrapper.ant-select-tree-node-selected {
+    background: #0088dc52 !important;
+  }
+
+  .ant-select-tree,.ant-select-tree li .ant-select-tree-node-content-wrapper{
+    color: #ffffffe6;
+  }
+
+  .ant-select-tree li .ant-select-tree-node-content-wrapper:hover{
+    background: #0088dc52;
+  }
+
+  // a-select 下拉项样式
+  .ant-select-dropdown-menu-item {
+    color: #ffffff;
+    font-size: 12px;
+    &.ant-select-dropdown-menu-item-selected{
+      background: #0088dc52 ;
+    }
+    &:hover {
+      background: #0088dc52 !important;
+    }
+
+    &.ant-select-dropdown-menu-item-active {
+      background: #0088dc52 !important;
+    }
+  }
+
+  .ant-select-dropdown-menu {
+    background: transparent;
+  }
+
+  .ant-select-dropdown-menu-item-disabled {
+    color: rgba(255, 255, 255, 0.4) !important;
+  }
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #0776C5;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #091e59cc;
+  }
+
+  .ant-empty{
+    color: #ffffff;
+  }
+}
+
+// 为a-select选择器本身添加暗色主题样式
+.ant-select-dark {
+  .ant-select-selection {
+    background-color: #ffffff05 !important;
+    border: 1px solid #0190F7 !important;
+    color: #fff !important;
+    box-shadow: -2px -2px 4px 0 #c8fffb66 inset, 2px 2px 4px 0 #c8fffb66 inset;
+  }
+
+  .ant-select-selection__rendered {
+    color: #fff;
+  }
+
+  .ant-select-arrow {
+    color: #fff;
+  }
+
+  .ant-select-selection__clear {
+    background: #020927;
+    color: #fff;
+  }
+}
+
+.dateDownBody{
+  .ant-calendar{
+    border-radius: 0 !important;
+    border: 1px solid #245D86;
+  }
+  .ant-calendar-panel{
+    background: #091e59cc;
+  }
+  .ant-calendar-year-panel-body{
+    background: #091e59cc;
+    border: 1px solid #245D86;
+  }
+
+  .ant-calendar-input-wrap{
+    background: #091e59cc;
+  }
+  .ant-calendar-input,.ant-calendar-year-panel {
+    border-radius: 0 !important;
+    background: #091e59cc;
+    color: #ffffffe6;
+  }
+  .ant-calendar-year-panel-year,.ant-calendar-year-panel-decade-select-content{
+    color: #ffffffe6;
+  }
+
+  .ant-calendar-year-panel-selected-cell .ant-calendar-year-panel-year,.ant-calendar-header a:hover{
+    background: #0088dc52;
+    color: #ffffffe6;
+  }
+
+  .ant-calendar-body,.ant-calendar-footer{
+    display: none;
+  }
+}

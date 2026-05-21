@@ -11,6 +11,7 @@
 | [aiagent](./aiagent) | AI 简历优化后端 | Express + Vercel AI SDK + LangChain + LanceDB + SQLite |
 | [aiagentfe-react](./aiagentfe-react) | 简历优化前端（React） | React 19 + Ant Design 6 + Zustand 5 + Tailwind CSS |
 | [aiagentfe-vue](./aiagentfe-vue) | 简历优化前端（Vue） | Vue 3 + Element Plus 2 + Pinia 3 + Tailwind CSS |
+| [big-screen](./big-screen) | 数据可视化大屏 | Vue 2 + ECharts + Ant Design Vue |
 | [canvas-anno-vue](./canvas-anno-vue) | 图片标注工具 | Vue 3 + Canvas 2D + Tailwind CSS |
 | [emoji-mouse](./emoji-mouse) | emoji 鼠标拖尾浏览器扩展 | Plasmo + Vue 3 + Ant Design Vue |
 | [spell-check-editor](./spell-check-editor) | 拼写检查富文本编辑器 | React 19 + TinyMCE |
@@ -20,6 +21,10 @@
 `aiagent` + `aiagentfe-react`（或 `aiagentfe-vue`）组成一套完整的 AI 简历优化工具：
 1. **后端**（`aiagent`）—— Express 服务器，处理文件上传、大模型交互、RAG 检索和 PDF 生成
 2. **前端** —— 可选 React（`aiagentfe-react`）或 Vue（`aiagentfe-vue`），提供对话式交互界面
+
+### 数据可视化大屏
+
+`big-screen` 独立的大屏数据可视化项目，基于 Vue 2 构建，使用 ECharts 展示各类图表数据，支持多个业务专题模块切换。
 
 ### 图片标注工具
 

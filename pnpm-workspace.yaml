@@ -2,6 +2,7 @@ packages:
   - aiagent
   - aiagentfe-vue
   - aiagentfe-react
+  - big-screen
   - canvas-anno-vue
   - emoji-mouse
   - spell-check-editor

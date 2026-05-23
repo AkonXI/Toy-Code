@@ -1,4 +1,5 @@
 export type ModeType = 'rect' | 'point' | 'polyline' | 'polygon';
+export type InteractionMode = 'select' | 'draw';
 
 export interface Point {
   x: number;
@@ -104,6 +105,8 @@ export interface HandlerReturn {
 
 export interface ControllerOpts {
   mode?: string;
+  interactionMode?: InteractionMode;
+  readonly?: boolean;
   onChange?: (shapes: Shape[], meta: Meta) => void;
   groups?: Group[];
 }

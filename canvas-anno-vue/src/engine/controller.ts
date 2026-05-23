@@ -12,10 +12,13 @@ import type {
   ControllerState,
   HandlerReturn,
   ControllerOpts,
+  InteractionMode,
 } from './types';
 
 export class AnnotationController {
   mode: string;
+  interactionMode: InteractionMode;
+  readonly: boolean;
   onChange: (shapes: Shape[], meta: Meta) => void;
   _groupMap: Record<string, Group>;
   currentGroup: string;
@@ -33,6 +36,8 @@ export class AnnotationController {
 
   constructor(opts: ControllerOpts = {}) {
     this.mode = opts.mode || 'rect';
+    this.interactionMode = opts.interactionMode || 'draw';
+    this.readonly = opts.readonly || false;
     this.onChange = opts.onChange || (() => {});
     const groups = opts.groups || DEFAULT_GROUPS;
     this._groupMap = {};
@@ -103,6 +108,40 @@ export class AnnotationController {
     this._notify();
   }
 
+  setInteractionMode(mode: InteractionMode): void {
+    if (mode === 'select' && this.interactionMode === 'draw' && this._shapeLayer) {
+      const poly = this._activePolygon();
+      if (poly && poly.points.length >= 3) {
+        poly.complete = true;
+      } else if (poly) {
+        poly.points = [];
+        this._shapeLayer.popShape();
+      }
+      const pl = this._activePolyline();
+      if (pl && pl.points.length >= 2) {
+        pl.complete = true;
+      } else if (pl) {
+        pl.points = [];
+        this._shapeLayer.popShape();
+      }
+      this._shapeLayer.drawHistory();
+    }
+    this.interactionMode = mode;
+    if (this._shapeLayer) this._shapeLayer.interactionMode = mode;
+    if (this._shapeLayer && this._shapeLayer.current >= 0) {
+      const s = this._shapeLayer.shapes[this._shapeLayer.current];
+      if (s) s.current = false;
+      this._shapeLayer.current = -1;
+      this._shapeLayer.drawHistory();
+    }
+    this._notify();
+  }
+
+  setReadonly(v: boolean): void {
+    this.readonly = v;
+    if (v) this.setInteractionMode('select');
+  }
+
   setGroup(color: string): void {
     if (!this._shapeLayer) return;
     if (!this._groupMap[color]) return;
@@ -133,6 +172,86 @@ export class AnnotationController {
     this._imageLayer.zoom(1);
     this._shapeLayer.zoom(1);
     this._notify();
+  }
+
+  private _cancelAnim(): void {
+    if (this._rafId !== null) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+  }
+
+  focusOnShape(shapeIdx: number): void {
+    if (!this._shapeLayer || !this._imageLayer) return;
+    const shape = this._shapeLayer.shapes[shapeIdx];
+    if (!shape) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    if (shape.type === 'rect') {
+      const hw = shape.w / 2, hh = shape.h / 2;
+      const cos = Math.cos(shape.rotation || 0), sin = Math.sin(shape.rotation || 0);
+      for (const [dx, dy] of [[-hw,-hh],[hw,-hh],[-hw,hh],[hw,hh]]) {
+        const x = shape.x + dx * cos - dy * sin;
+        const y = shape.y + dx * sin + dy * cos;
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      }
+    } else if (shape.type === 'point') {
+      minX = maxX = shape.x; minY = maxY = shape.y;
+    } else {
+      for (const p of shape.points) {
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+      }
+    }
+
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const bw = (maxX - minX) || 10;
+    const bh = (maxY - minY) || 10;
+    const pad = 1.2;
+
+    const cw = this._shapeLayer.canvas.width;
+    const ch = this._shapeLayer.canvas.height;
+    const fitScale = Math.min(cw / (bw * pad), ch / (bh * pad));
+    const targetScale = Math.max(this._minScale, Math.min(this._maxScale, fitScale));
+    const targetTx = cx - cw / (2 * targetScale);
+    const targetTy = cy - ch / (2 * targetScale);
+
+    const startScale = this._scaleRate;
+    const startTx = this._shapeLayer.translateX;
+    const startTy = this._shapeLayer.translateY;
+
+    this._cancelAnim();
+    const duration = 400;
+    const start = performance.now();
+
+    const step = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+      const s = startScale + (targetScale - startScale) * ease;
+      const tx = startTx + (targetTx - startTx) * ease;
+      const ty = startTy + (targetTy - startTy) * ease;
+
+      this._imageLayer.translateX = tx;
+      this._imageLayer.translateY = ty;
+      this._shapeLayer.translateX = tx;
+      this._shapeLayer.translateY = ty;
+      this._scaleRate = s;
+      this._imageLayer.zoom(s);
+      this._shapeLayer.zoom(s);
+      this._imageLayer._draw();
+      this._shapeLayer.drawHistory();
+
+      if (t < 1) {
+        this._rafId = requestAnimationFrame(step);
+      } else {
+        this._rafId = null;
+        this._notify();
+      }
+    };
+
+    this._rafId = requestAnimationFrame(step);
   }
 
   undo(): void {
@@ -328,6 +447,7 @@ export class AnnotationController {
   _setCursor(e: MouseEvent): void {
     if (!this._shapeLayer) return;
     const canvas = this._shapeLayer.canvas;
+    if (this.interactionMode === 'draw') { canvas.style.cursor = 'crosshair'; return; }
     const s = this._shapeLayer.current >= 0 ? this._shapeLayer.shapes[this._shapeLayer.current] : null;
     if (s && s.type === 'rect') {
       const h = this._shapeLayer.handleHit(e.offsetX, e.offsetY, true);
@@ -378,6 +498,23 @@ export class AnnotationController {
       if (e.button !== 0) return;
 
       const handle = self._shapeLayer!.handleHit(e.offsetX, e.offsetY);
+
+      if (self.readonly) {
+        if (handle === 'OUT') {
+          let hitIdx2 = self._shapeLayer!.hitTest(e.offsetX, e.offsetY);
+          self._shapeLayer!.shapes.forEach(s => { s.current = false; });
+          if (hitIdx2 >= 0) {
+            self._shapeLayer!.shapes[hitIdx2].current = true;
+            self._shapeLayer!.current = hitIdx2;
+          } else {
+            self._shapeLayer!.current = -1;
+          }
+          self._shapeLayer!.drawHistory();
+          self._notify();
+        }
+        return;
+      }
+
       if (handle === 'ROTATE') {
         self._state.rotating = true;
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current] as RectShape;
@@ -401,12 +538,45 @@ export class AnnotationController {
 
       let hitIdx = -1;
       let vertexIdx = -1;
-      const vhit = self._shapeLayer!.vertexHitTest(e.offsetX, e.offsetY);
-      if (vhit) {
-        hitIdx = vhit.shapeIdx;
-        vertexIdx = vhit.vertexIdx;
+
+      if (self.interactionMode === 'draw') {
+        const poly = self._activePolygon() || self._activePolyline();
+        if (poly && poly.points.length > 0) {
+          const pts = poly.points;
+          for (let j = 0; j < pts.length; j++) {
+            const p = self._shapeLayer!.toCanvas(pts[j].x, pts[j].y);
+            if (Math.hypot(e.offsetX - p.x, e.offsetY - p.y) <= 6) {
+              hitIdx = self._shapeLayer!.shapes.length - 1;
+              vertexIdx = j;
+              break;
+            }
+          }
+        }
       } else {
-        hitIdx = self._shapeLayer!.hitTest(e.offsetX, e.offsetY);
+        const vhit = self._shapeLayer!.vertexHitTest(e.offsetX, e.offsetY);
+        if (vhit) {
+          hitIdx = vhit.shapeIdx;
+          vertexIdx = vhit.vertexIdx;
+        } else {
+          hitIdx = self._shapeLayer!.hitTest(e.offsetX, e.offsetY);
+        }
+      }
+      if (e.ctrlKey && self.interactionMode === 'select') {
+        const shapeHit = self._shapeLayer!.hitTest(e.offsetX, e.offsetY);
+        if (shapeHit >= 0) {
+          const insertIdx = self._shapeLayer!.findEdgeInsertIndex(e.offsetX, e.offsetY, shapeHit);
+          if (insertIdx !== null) {
+            const s = self._shapeLayer!.shapes[shapeHit];
+            if (s.type === 'polygon' || s.type === 'polyline') {
+              const imgPt = self._shapeLayer!.toImage(e.offsetX, e.offsetY);
+              s.points.splice(insertIdx, 0, { x: imgPt.x, y: imgPt.y });
+              self._saveSnapshot();
+              self._shapeLayer!.drawHistory();
+              self._notify();
+              return;
+            }
+          }
+        }
       }
       if (hitIdx >= 0) {
         self._shapeLayer!.shapes.forEach(s => { s.current = false; });
@@ -423,7 +593,7 @@ export class AnnotationController {
         return;
       }
 
-      if (self._shapeLayer!.current >= 0) {
+      if (self.interactionMode !== 'draw' && self._shapeLayer!.current >= 0) {
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current];
         if (s) s.current = false;
         self._shapeLayer!.current = -1;
@@ -431,6 +601,8 @@ export class AnnotationController {
         self._notify();
         return;
       }
+
+      if (self.interactionMode !== 'draw') return;
 
       self._state.drawing = true;
       const imgPt = self._shapeLayer!.toImage(e.offsetX, e.offsetY);
@@ -480,13 +652,15 @@ export class AnnotationController {
         return;
       }
 
+      if (self.readonly) return;
+
       if (self._state.rotating) {
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current] as RectShape;
         const img = self._shapeLayer!.toImage(e.offsetX, e.offsetY);
         const currentAngle = Math.atan2(img.y - s.y, img.x - s.x);
         const rawDelta = currentAngle - self._state.rotateStartAngle!;
         const delta = normalizeAngle(rawDelta);
-        s.rotation = self._state.rotateCache!.rotation + delta - self._state.offsetAngle!;
+        s.rotation = normalizeAngle(self._state.rotateCache!.rotation + delta - self._state.offsetAngle!);
         self._shapeLayer!.drawHistory(e);
         self._setCursor(e);
         self._liveNotify();

@@ -4,6 +4,7 @@ export { ShapeLayer } from './shape-layer';
 export { AnnotationController } from './controller';
 export type {
   ModeType,
+  InteractionMode,
   Point,
   Group,
   RectShape,

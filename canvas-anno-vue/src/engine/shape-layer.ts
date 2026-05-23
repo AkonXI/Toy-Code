@@ -9,7 +9,15 @@ import type {
   PolygonShape,
   VertexHit,
   Handle,
+  InteractionMode,
 } from './types';
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 export class ShapeLayer {
   canvas: HTMLCanvasElement;
@@ -23,6 +31,7 @@ export class ShapeLayer {
   _defaultGroup: Group;
   _group: string;
   _mode: string;
+  interactionMode: InteractionMode;
   _liveRect: RectShape | null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -39,6 +48,7 @@ export class ShapeLayer {
     this._defaultGroup = DEFAULT_GROUPS[0];
     this._group = DEFAULT_GROUPS[0].name;
     this._mode = 'rect';
+    this.interactionMode = 'draw';
     this._liveRect = null;
   }
 
@@ -134,6 +144,20 @@ export class ShapeLayer {
     return null;
   }
 
+  findEdgeInsertIndex(pixelX: number, pixelY: number, shapeIdx: number): number | null {
+    const s = this.shapes[shapeIdx];
+    if (!s || (s.type !== 'polygon' && s.type !== 'polyline')) return null;
+    const pts = s.points;
+    if (pts.length < 2) return null;
+    for (let j = 0; j < pts.length - 1; j++) {
+      if (this._hitSegment(pixelX, pixelY, pts[j], pts[j + 1])) return j + 1;
+    }
+    if (s.type === 'polygon' && pts.length >= 2) {
+      if (this._hitSegment(pixelX, pixelY, pts[pts.length - 1], pts[0])) return pts.length;
+    }
+    return null;
+  }
+
   _hitPolyline(pixelX: number, pixelY: number, points: Point[]): boolean {
     for (let j = 0; j < points.length; j++) {
       const p = this.toCanvas(points[j].x, points[j].y);
@@ -219,6 +243,67 @@ export class ShapeLayer {
       this._paintShape(i, this.shapes[i], i === hitIdx);
     }
     this._paintLiveRect();
+    this._drawShapeLabels();
+  }
+
+  _drawShapeLabels(): void {
+    if (this.interactionMode !== 'select') return;
+    const ctx = this.ctx;
+    this.shapes.forEach((s, i) => {
+      if ((s.type === 'polygon' || s.type === 'polyline') && !s.complete) return;
+      const c = this._groups[s.group] || this._defaultGroup;
+      const bg = s.current ? c.stroke : hexToRgba(c.stroke, 0.5);
+      const label = this._getShapeLabel(s, i);
+      const anchor = this._getShapeAnchor(s);
+      const p = this.toCanvas(anchor.x, anchor.y);
+
+      ctx.font = '10px monospace';
+      const tw = ctx.measureText(label).width + 8;
+      const th = 16;
+      const rx = p.x + 4, ry = p.y - th - 4;
+
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.moveTo(rx + 3, ry);
+      ctx.lineTo(rx + tw - 3, ry);
+      ctx.quadraticCurveTo(rx + tw, ry, rx + tw, ry + 3);
+      ctx.lineTo(rx + tw, ry + th - 3);
+      ctx.quadraticCurveTo(rx + tw, ry + th, rx + tw - 3, ry + th);
+      ctx.lineTo(rx + 3, ry + th);
+      ctx.quadraticCurveTo(rx, ry + th, rx, ry + th - 3);
+      ctx.lineTo(rx, ry + 3);
+      ctx.quadraticCurveTo(rx, ry, rx + 3, ry);
+      ctx.fill();
+
+      ctx.fillStyle = '#fff';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(label, rx + 4, ry + th - 4);
+    });
+  }
+
+  _getShapeLabel(s: Shape, i: number): string {
+    switch (s.type) {
+      case 'rect': return `矩形 ${i + 1}`;
+      case 'point': return `点 ${i + 1}`;
+      case 'polygon': return `多边形 ${i + 1}`;
+      case 'polyline': return `折线 ${i + 1}`;
+    }
+  }
+
+  _getShapeAnchor(s: Shape): Point {
+    switch (s.type) {
+      case 'rect': {
+        const cos = Math.cos(s.rotation || 0);
+        const sin = Math.sin(s.rotation || 0);
+        return {
+          x: s.x - (s.w / 2) * cos + (s.h / 2) * sin,
+          y: s.y - (s.w / 2) * sin - (s.h / 2) * cos,
+        };
+      }
+      case 'point': return { x: s.x, y: s.y };
+      case 'polygon':
+      case 'polyline': return s.points[0];
+    }
   }
 
   _paintShape(i: number, s: Shape, highlight: boolean): void {
@@ -358,8 +443,17 @@ export class ShapeLayer {
 
   _paintPolygon(s: PolygonShape, _i: number, highlight: boolean): void {
     const pts = s.points;
-    if (pts.length < 2) return;
+    if (pts.length === 0) return;
     const c = this._groups[s.group] || this._defaultGroup;
+
+    if (pts.length === 1) {
+      const p = this.toCanvas(pts[0].x, pts[0].y);
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      this.ctx.fillStyle = s.current ? c.fill : c.stroke;
+      this.ctx.fill();
+      return;
+    }
 
     this.ctx.beginPath();
     const p0 = this.toCanvas(pts[0].x, pts[0].y);

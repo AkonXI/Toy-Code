@@ -11,14 +11,19 @@
 
 ## 功能
 
-- 四种标注模式：矩形（支持旋转）、点、折线、多边形
-- 绘制、移动图形、移动顶点、平移、缩放
+- 选择/绘制双模式 — Tab 切换，选择模式编辑已有图形，绘制模式创建新图形
+- 四种标注类型：矩形（支持旋转）、点、折线、多边形
+- 绘制中切换模式自动完成/丢弃图形
+- 完成图形显示名称标签（分组色背景），选中高亮
+- Ctrl+点击折线/多边形边缘插入新顶点
+- 列表点击自动切换选择模式并选中
 - 撤销/重做（单栈快照架构）
 - 删除选中 / 清空全部
 - 可配置颜色组（1-4 组）
 - 可配置启用的标注类型（未启用的显示禁用态）
 - 右侧标注列表面板，点击选中 + 自动滚动
 - 完整快捷键（模式切换、颜色组、缩放、撤销重做、平移、完成/删除）
+- 只读模式 + v-model 双向绑定，支持审核和回显
 - 模块化引擎架构：`types` / `utils` / `image-layer` / `shape-layer` / `controller`
 
 ## 用法
@@ -70,15 +75,31 @@ function getAnnotations() {
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `imageSrc` | `string` | `''` | 背景图片地址，为空时自动生成网格背景 |
-| `initialMode` | `string` | `'rect'` | 初始标注模式：`'rect'` / `'point'` / `'polyline'` / `'polygon'` |
+| `initialMode` | `string` | `'rect'` | 初始绘制模式：`'rect'` / `'point'` / `'polyline'` / `'polygon'` |
+| `interactionMode` | `'select' \| 'draw'` | `'draw'` | 初始交互模式：`'select'` 编辑 / `'draw'` 绘制 |
 | `groups` | `Group[]` | 默认四色组 | 颜色分组配置 |
-| `enabledModes` | `ModeType[]` | `['rect','point','polyline','polygon']` | 启用的标注类型，未启用的显示禁用态 |
+| `enabledModes` | `ModeType[]` | 全启用 | 启用的标注类型，未启用的显示禁用态 |
+| `readonly` | `boolean` | `false` | 只读模式：禁止所有编辑，仅可查看/选中 |
+| `modelValue` | `Shape[]` | `[]` | v-model 双向绑定，用于外部传入标注数据 |
 
 ### Events
 
 | 事件 | 参数 | 说明 |
 |------|------|------|
 | `change` | `(shapes: Shape[], meta: Meta)` | 任何标注变更时触发 |
+| `update:modelValue` | `(shapes: Shape[])` | v-model 双向绑定，标注数据变更时触发 |
+
+### 只读模式（审核/回显）
+
+```vue
+<CanvasAnnotator
+  v-model="annotations"
+  :readonly="true"
+  @change="onChange"
+/>
+```
+
+只读模式下仅允许选中查看图形、平移和缩放，禁止所有编辑操作。
 
 ### Ref 方法
 
@@ -92,6 +113,7 @@ function getAnnotations() {
 
 | 操作 | 快捷键 |
 |------|--------|
+| 切换选择/绘制模式 | `Tab` |
 | 矩形模式 | `1` |
 | 点模式 | `2` |
 | 折线模式 | `3` |
@@ -111,24 +133,30 @@ function getAnnotations() {
 
 ### 鼠标操作
 
-| 操作 | 方式 |
-|------|------|
-| 绘制图形 | 左键拖拽 |
-| 移动图形 | 点击并拖拽图形 |
-| 移动顶点 | 拖拽图形顶点控制点 |
-| 画布平移 | 右键拖拽 |
-| 缩放 | 滚轮 |
-| 旋转矩形 | 拖拽旋转手柄（矩形上方圆形控制点） |
+| 模式 | 操作 | 方式 |
+|------|------|------|
+| 选择 | 选中图形 | 点击图形 |
+| 选择 | 移动图形 | 点击并拖拽图形 |
+| 选择 | 移动顶点 | 拖拽图形顶点控制点 |
+| 选择 | 插入顶点 | `Ctrl`+点击折线/多边形边缘 |
+| 选择 | 旋转矩形 | 拖拽旋转手柄（矩形上方圆形控制点） |
+| 选择 | 缩放矩形 | 拖拽四角/四边手柄 |
+| 绘制 | 绘制矩形 | 左键拖拽 |
+| 绘制 | 绘制点 | 左键点击 |
+| 绘制 | 绘制折线/多边形 | 连续左键点击，Enter 或切换模式完成 |
+| 通用 | 画布平移 | 右键拖拽 / 方向键 |
+| 通用 | 缩放 | 滚轮 / `Ctrl`+`=` / `Ctrl`+`-` |
+| 通用 | 聚焦图形 | 右侧列表点击 → 平滑缩放居中 |
 
 ## 引擎架构
 
 ```
 src/engine/
-  types.ts           — 类型定义（Shape, Group, Meta 等）
+  types.ts           — 类型定义（Shape, Group, Meta, InteractionMode 等）
   utils.ts           — 工具函数（deepCopy, normalizeAngle, buildGroupMap）
   image-layer.ts     — 图像层（背景图加载、缩放、平移）
-  shape-layer.ts     — 图形层（绘制、命中检测、坐标变换）
-  controller.ts      — 控制器（事件处理、状态管理、撤销重做）
+  shape-layer.ts     — 图形层（绘制、命中检测、顶点插入、形状标签、坐标变换）
+  controller.ts      — 控制器（事件处理、交互模式、状态管理、撤销重做）
   index.ts           — 统一导出
 ```
 

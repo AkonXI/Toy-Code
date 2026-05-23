@@ -22,7 +22,7 @@ export class AnnotationController {
   onChange: (shapes: Shape[], meta: Meta) => void;
   _groupMap: Record<string, Group>;
   currentGroup: string;
-  _historyStack: Shape[][];
+  _historyStack: { shapes: Shape[]; interactionMode: InteractionMode; mode: string }[];
   _historyIndex: number;
   _state: ControllerState;
   _scaleRate: number;
@@ -110,21 +110,13 @@ export class AnnotationController {
 
   setInteractionMode(mode: InteractionMode): void {
     if (mode === 'select' && this.interactionMode === 'draw' && this._shapeLayer) {
+      this.completePolygon();
+      this.completePolyline();
       const poly = this._activePolygon();
-      if (poly && poly.points.length >= 3) {
-        poly.complete = true;
-      } else if (poly) {
-        poly.points = [];
-        this._shapeLayer.popShape();
-      }
+      if (poly && !poly.complete) { poly.points = []; this._shapeLayer.popShape(); }
       const pl = this._activePolyline();
-      if (pl && pl.points.length >= 2) {
-        pl.complete = true;
-      } else if (pl) {
-        pl.points = [];
-        this._shapeLayer.popShape();
-      }
-      this._shapeLayer.drawHistory();
+      if (pl && !pl.complete) { pl.points = []; this._shapeLayer.popShape(); }
+      if (poly || pl) this._shapeLayer.drawHistory();
     }
     this.interactionMode = mode;
     if (this._shapeLayer) this._shapeLayer.interactionMode = mode;
@@ -268,8 +260,23 @@ export class AnnotationController {
 
   _restoreSnapshot(): void {
     if (!this._shapeLayer) return;
-    this._shapeLayer.shapes = deepCopy(this._historyStack[this._historyIndex]);
+    const entry = this._historyStack[this._historyIndex];
+    this._shapeLayer.shapes = deepCopy(entry.shapes);
     this._shapeLayer.current = this._shapeLayer.shapes.findIndex(s => s.current);
+
+    const incomplete = this._shapeLayer.shapes.find(s =>
+      (s.type === 'polygon' || s.type === 'polyline') && !s.complete
+    );
+    if (incomplete) {
+      this.interactionMode = 'draw';
+      this.mode = incomplete.type;
+      this._shapeLayer.mode = incomplete.type;
+    } else {
+      this.interactionMode = entry.interactionMode;
+      this.mode = entry.mode;
+      this._shapeLayer.mode = entry.mode;
+    }
+    this._shapeLayer.interactionMode = this.interactionMode;
     this._shapeLayer.drawHistory();
     this._notify();
   }
@@ -292,7 +299,6 @@ export class AnnotationController {
 
   completePolygon(): void {
     if (!this._shapeLayer) return;
-    if (this.mode !== 'polygon') return;
     const idx = this._shapeLayer.shapes.length - 1;
     if (idx < 0) return;
     const poly = this._shapeLayer.shapes[idx];
@@ -314,7 +320,6 @@ export class AnnotationController {
 
   completePolyline(): void {
     if (!this._shapeLayer) return;
-    if (this.mode !== 'polyline') return;
     const idx = this._shapeLayer.shapes.length - 1;
     if (idx < 0) return;
     const pl = this._shapeLayer.shapes[idx];
@@ -392,8 +397,9 @@ export class AnnotationController {
     } else {
       this._shapeLayer.current = -1;
     }
-    this._shapeLayer.drawHistory();
-  }
+      this._shapeLayer.drawHistory();
+      this._saveSnapshot();
+    }
 
   getShapes(): Shape[] {
     if (!this._shapeLayer) return [];
@@ -432,14 +438,22 @@ export class AnnotationController {
     if (this._historyIndex < this._historyStack.length - 1) {
       this._historyStack.length = this._historyIndex + 1;
     }
-    this._historyStack.push(deepCopy(this._shapeLayer.shapes));
+    this._historyStack.push({
+      shapes: deepCopy(this._shapeLayer.shapes),
+      interactionMode: this.interactionMode,
+      mode: this.mode,
+    });
     this._historyIndex = this._historyStack.length - 1;
   }
 
   _seedHistory(): void {
     if (!this._shapeLayer) return;
     if (this._historyStack.length === 0) {
-      this._historyStack.push(deepCopy(this._shapeLayer.shapes));
+      this._historyStack.push({
+        shapes: deepCopy(this._shapeLayer.shapes),
+        interactionMode: this.interactionMode,
+        mode: this.mode,
+      });
       this._historyIndex = 0;
     }
   }

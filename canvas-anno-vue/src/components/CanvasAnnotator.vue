@@ -66,83 +66,14 @@
             @click="getEngine()?.zoom(-0.1)"
             title="缩小 (Ctrl+-)"
           >
-            <svg
-              class="size-[18px] fill-current pointer-events-none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                cx="11"
-                cy="11"
-                r="7"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <line
-                x1="21"
-                y1="21"
-                x2="16.65"
-                y2="16.65"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <line
-                x1="8"
-                y1="11"
-                x2="14"
-                y2="11"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-            </svg>
+            <ToolIcon type="zoom-out" />
           </button>
           <button
             class="aspect-square border border-gray-300 rounded-md bg-gray-50 cursor-pointer flex items-center justify-center transition-all duration-150 text-gray-500 relative hover:bg-gray-200 active:bg-gray-300 disabled:opacity-40 disabled:cursor-default"
             @click="getEngine()?.zoom(0.1)"
             title="放大 (Ctrl+=)"
           >
-            <svg
-              class="size-[18px] fill-current pointer-events-none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                cx="11"
-                cy="11"
-                r="7"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <line
-                x1="21"
-                y1="21"
-                x2="16.65"
-                y2="16.65"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <line
-                x1="11"
-                y1="8"
-                x2="11"
-                y2="14"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <line
-                x1="8"
-                y1="11"
-                x2="14"
-                y2="11"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-            </svg>
+            <ToolIcon type="zoom-in" />
           </button>
           <button
             class="aspect-square border border-gray-300 rounded-md bg-gray-50 cursor-pointer flex items-center justify-center transition-all duration-150 text-gray-500 relative hover:bg-gray-200 active:bg-gray-300 disabled:opacity-40 disabled:cursor-default"
@@ -150,26 +81,7 @@
             :disabled="!canUndo || props.readonly"
             title="撤销 (Ctrl+Z)"
           >
-            <svg
-              class="size-[18px] fill-current pointer-events-none"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M4 4v6h6"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M6.5 15.5a8 8 0 1 0 3-12"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
+            <ToolIcon type="undo" />
           </button>
           <button
             class="aspect-square border border-gray-300 rounded-md bg-gray-50 cursor-pointer flex items-center justify-center transition-all duration-150 text-gray-500 relative hover:bg-gray-200 active:bg-gray-300 disabled:opacity-40 disabled:cursor-default"
@@ -177,26 +89,7 @@
             :disabled="!canRedo || props.readonly"
             title="重做 (Ctrl+Y)"
           >
-            <svg
-              class="size-[18px] fill-current pointer-events-none"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M20 4v6h-6"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M17.5 15.5a8 8 0 1 1 3-12"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
+            <ToolIcon type="redo" />
           </button>
         </div>
         <!-- Complete polygon/polyline -->
@@ -224,24 +117,7 @@
            @click="clearAll"
           title="清空全部 (Delete)"
         >
-          <svg
-            class="size-[18px] fill-current pointer-events-none"
-            viewBox="0 0 24 24"
-          >
-            <polyline
-              points="3,6 5,6 21,6"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-            <path
-              d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            />
-          </svg>
+          <ToolIcon type="trash" />
         </button>
       </div>
 
@@ -373,6 +249,7 @@
     type InteractionMode,
   } from '../engine';
   import ModeIcon from './ModeIcon.vue';
+  import ToolIcon from './ToolIcon.vue';
 
   interface Props {
     imageSrc?: string;

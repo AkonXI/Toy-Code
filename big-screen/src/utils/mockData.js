@@ -60,13 +60,13 @@ const mocks = {
   },
   '/tpm-bd-screen/v1/queryExpertDeptInfo': {
     data: { dataList: [
-      { orgName: '部门A', itemNum: 45, percent: '25.0' },
-      { orgName: '部门B', itemNum: 38, percent: '21.1' },
-      { orgName: '部门C', itemNum: 32, percent: '17.8' },
-      { orgName: '部门D', itemNum: 28, percent: '15.6' },
-      { orgName: '部门E', itemNum: 20, percent: '11.1' },
-      { orgName: '部门F', itemNum: 12, percent: '6.7' },
-      { orgName: '部门G', itemNum: 5, percent: '2.8' },
+      { itemName: '部门A', itemNum: 45, percent: '25.0' },
+      { itemName: '部门B', itemNum: 38, percent: '21.1' },
+      { itemName: '部门C', itemNum: 32, percent: '17.8' },
+      { itemName: '部门D', itemNum: 28, percent: '15.6' },
+      { itemName: '部门E', itemNum: 20, percent: '11.1' },
+      { itemName: '部门F', itemNum: 12, percent: '6.7' },
+      { itemName: '部门G', itemNum: 5, percent: '2.8' },
     ]},
   },
   '/tpm-warn-record/v1/statisticsWarnRecordCount': {

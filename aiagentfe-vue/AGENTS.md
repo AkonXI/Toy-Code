@@ -2,6 +2,10 @@
 
 Vue 3 + Vite + TypeScript + Element Plus + Tailwind CSS v4
 
+## 操作指引
+
+- **优先使用 MCP 服务** 进行文件读写、搜索、网页抓取等操作
+
 ## Commands
 
 ```

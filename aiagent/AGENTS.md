@@ -6,6 +6,10 @@ Express + AI SDK v6 + LangChain + DeepSeek + LanceDB
 
 **All AI responses must be in Chinese.** Include "请用中文回答" in prompts.
 
+## 操作指引
+
+- **优先使用 MCP 服务** 进行文件读写、搜索、网页抓取等操作
+
 ## Commands
 
 ```

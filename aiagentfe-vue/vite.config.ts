@@ -24,13 +24,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
-  optimizeDeps: {
-    rolldownOptions: {
-      define: {
-        global: 'globalThis'
-      }
-    }
-  },
+  define: { global: 'globalThis' },
   server: {
     proxy: {
       '/api': {

@@ -4,6 +4,10 @@
 
 **emoji-mouse** — 一个浏览器扩展（Chrome + Edge），在用户鼠标光标后渲染下落的 emoji 尾迹。基于 [Plasmo](https://docs.plasmo.com/) + Vue 3 + TypeScript 构建。
 
+## 操作指引
+
+- **优先使用 MCP 服务** 进行文件读写、搜索、网页抓取等操作
+
 ## 技术栈
 
 | 层级      | 技术                                                |

@@ -25,6 +25,7 @@
 - 完整快捷键（模式切换、颜色组、缩放、撤销重做、平移、完成/删除）
 - 只读模式 + v-model 双向绑定，支持审核和回显
 - 模块化引擎架构：`types` / `utils` / `image-layer` / `shape-layer` / `controller`
+- 轨迹比对：两标注间相似度/最大误差校验，Canvas 叠加可视化违规段 + OBB
 
 ## 用法
 
@@ -88,6 +89,7 @@ function getAnnotations() {
 |------|------|------|
 | `change` | `(shapes: Shape[], meta: Meta)` | 任何标注变更时触发 |
 | `update:modelValue` | `(shapes: Shape[])` | v-model 双向绑定，标注数据变更时触发 |
+| `error` | `(error: Error)` | 图片加载失败时触发，供外部业务处理 |
 
 ### 只读模式（审核/回显）
 
@@ -157,6 +159,14 @@ src/engine/
   image-layer.ts     — 图像层（背景图加载、缩放、平移）
   shape-layer.ts     — 图形层（绘制、命中检测、顶点插入、形状标签、坐标变换）
   controller.ts      — 控制器（事件处理、交互模式、状态管理、撤销重做）
+  index.ts           — 统一导出
+
+src/matcher/
+  types.ts           — 比对类型（BBox, OBB, MatchResult, MatcherOptions）
+  geometry.ts        — 欧氏距离
+  resample.ts        — 弧长等距重采样
+  bbox.ts            — AABB + OBB 包围盒（PCA 定向包围盒）
+  matcher.ts         — 核心比对算法（单向 Hausdorff 距离 + 相似度 + 重合率）
   index.ts           — 统一导出
 ```
 

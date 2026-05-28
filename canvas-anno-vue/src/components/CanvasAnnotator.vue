@@ -137,6 +137,7 @@
           width="600"
           height="600"
         ></canvas>
+        <slot name="canvas-overlay" />
       </div>
 
       <!-- Label panel -->
@@ -239,8 +240,6 @@
   import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue';
   import {
     AnnotationController,
-    ImageLayer,
-    ShapeLayer,
     DEFAULT_GROUPS,
     type Shape,
     type Group,
@@ -274,6 +273,7 @@
   interface ChangeEmits {
     (e: 'change', shapes: Shape[], meta: Meta): void;
     (e: 'update:modelValue', shapes: Shape[]): void;
+    (e: 'error', error: Error): void;
   }
 
   const emit = defineEmits<ChangeEmits>();
@@ -307,6 +307,7 @@
   const currentInteractionMode = ref<InteractionMode>(props.interactionMode);
   const group = ref('red');
   const scale = ref(1);
+  let isInternalUpdate = false;
   const polygonActive = ref(false);
   const polylineActive = ref(false);
   const canComplete = ref(false);
@@ -340,8 +341,10 @@
     hasSelected.value = selected !== null;
     canUndo.value = engine.canUndo();
     canRedo.value = engine.canRedo();
+    isInternalUpdate = true;
     emit('change', shapes.value, engine.getMeta());
     emit('update:modelValue', shapes.value);
+    nextTick(() => { isInternalUpdate = false; });
   }
 
   function colorMap(g: string): string {
@@ -540,40 +543,7 @@
     }
   }, { deep: true });
 
-  function createSampleImage(): string {
-    const c = document.createElement('canvas');
-    c.width = 800;
-    c.height = 800;
-    const ctx = c.getContext('2d');
-    if (!ctx) return '';
-    const g = ctx.createLinearGradient(0, 0, 800, 800);
-    g.addColorStop(0, '#e3f2fd');
-    g.addColorStop(0.5, '#f3e5f5');
-    g.addColorStop(1, '#e8f5e9');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 800, 800);
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 800; i += 50) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, 800);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(800, i);
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.arc(400, 400, 6, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fill();
-    return c.toDataURL();
-  }
-
   onMounted(() => {
-    const src = props.imageSrc || createSampleImage();
-
     engine = new AnnotationController({
       mode: resolvedMode.value,
       interactionMode: props.interactionMode,
@@ -582,33 +552,9 @@
       groups: props.groups,
     });
 
-    engine._imageLayer = new ImageLayer(bgCanvas.value!);
-    engine._shapeLayer = new ShapeLayer(shapeCanvas.value!);
-    engine._shapeLayer.mode = resolvedMode.value;
-
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      if (!engine) return;
-      engine._imageLayer!.img = img;
-      engine._imageLayer!._draw();
-      shapeCanvas.value!.width = 600;
-      shapeCanvas.value!.height = 600;
-      engine._boundHandlers = engine._bindHandlers();
-      const h = engine._boundHandlers;
-      shapeCanvas.value!.addEventListener('mousedown', h.onMouseDown);
-      shapeCanvas.value!.addEventListener('mousemove', h.onMouseMove);
-      shapeCanvas.value!.addEventListener('mouseup', h.onMouseUp);
-      shapeCanvas.value!.addEventListener('mouseout', h.onMouseLeave);
-      shapeCanvas.value!.addEventListener('contextmenu', (e) =>
-        e.preventDefault(),
-      );
-      shapeCanvas.value!.addEventListener('wheel', h.onWheel, {
-        passive: false,
-      });
-      engine._shapeLayer!.drawHistory();
-      refreshEngine();
-    };
+    engine.mount(bgCanvas.value!, shapeCanvas.value!, props.imageSrc)
+      .then(() => refreshEngine())
+      .catch(err => emit('error', err as Error));
 
     document.addEventListener('keydown', handleKeydown);
   });

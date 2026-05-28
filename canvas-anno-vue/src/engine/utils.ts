@@ -14,7 +14,7 @@ export function buildGroupMap(groups: Group[]): Record<string, Group> {
 }
 
 export function deepCopy<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
+  return structuredClone(obj);
 }
 
 export function normalizeAngle(delta: number): number {

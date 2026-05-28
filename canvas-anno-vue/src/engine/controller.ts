@@ -68,7 +68,7 @@ export class AnnotationController {
     this._boundHandlers = null;
   }
 
-  mount(imageCanvas: HTMLCanvasElement, shapeCanvas: HTMLCanvasElement, imageSrc?: string): Promise<HTMLImageElement> {
+  mount(imageCanvas: HTMLCanvasElement, shapeCanvas: HTMLCanvasElement, imageSrc?: string): Promise<void> {
     this._imageLayer = new ImageLayer(imageCanvas);
     this._shapeLayer = new ShapeLayer(shapeCanvas);
     this._shapeLayer.mode = this.mode;
@@ -80,9 +80,45 @@ export class AnnotationController {
     shapeCanvas.addEventListener('mouseout', h.onMouseLeave);
     shapeCanvas.addEventListener('contextmenu', e => e.preventDefault());
     shapeCanvas.addEventListener('wheel', h.onWheel, { passive: false });
-    const src = imageSrc || imageCanvas.dataset.src;
-    if (!src) throw new Error('No image source provided');
-    return this._imageLayer.loadImage(src);
+
+    const src = imageSrc || this._generateSampleImage();
+    shapeCanvas.width = 600;
+    shapeCanvas.height = 600;
+
+    return this._imageLayer.loadImage(src).then(() => {
+      this._shapeLayer!.drawHistory();
+    });
+  }
+
+  private _generateSampleImage(): string {
+    const c = document.createElement('canvas');
+    c.width = 800;
+    c.height = 800;
+    const ctx = c.getContext('2d');
+    if (!ctx) return '';
+    const g = ctx.createLinearGradient(0, 0, 800, 800);
+    g.addColorStop(0, '#e3f2fd');
+    g.addColorStop(0.5, '#f3e5f5');
+    g.addColorStop(1, '#e8f5e9');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 800, 800);
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 800; i += 50) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 800);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(800, i);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(400, 400, 6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fill();
+    return c.toDataURL();
   }
 
   setMode(mode: string): void {

@@ -172,7 +172,9 @@ export class AnnotationController {
 
   focusOnShape(shapeIdx: number): void {
     if (!this._shapeLayer || !this._imageLayer) return;
-    const shape = this._shapeLayer.shapes[shapeIdx];
+    const shapeLayer = this._shapeLayer;
+    const imageLayer = this._imageLayer;
+    const shape = shapeLayer.shapes[shapeIdx];
     if (!shape) return;
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -201,16 +203,16 @@ export class AnnotationController {
     const bh = (maxY - minY) || 10;
     const pad = 1.2;
 
-    const cw = this._shapeLayer.canvas.width;
-    const ch = this._shapeLayer.canvas.height;
+    const cw = shapeLayer.canvas.width;
+    const ch = shapeLayer.canvas.height;
     const fitScale = Math.min(cw / (bw * pad), ch / (bh * pad));
     const targetScale = Math.max(this._minScale, Math.min(this._maxScale, fitScale));
     const targetTx = cx - cw / (2 * targetScale);
     const targetTy = cy - ch / (2 * targetScale);
 
     const startScale = this._scaleRate;
-    const startTx = this._shapeLayer.translateX;
-    const startTy = this._shapeLayer.translateY;
+    const startTx = shapeLayer.translateX;
+    const startTy = shapeLayer.translateY;
 
     this._cancelAnim();
     const duration = 400;
@@ -225,15 +227,15 @@ export class AnnotationController {
       const tx = startTx + (targetTx - startTx) * ease;
       const ty = startTy + (targetTy - startTy) * ease;
 
-      this._imageLayer.translateX = tx;
-      this._imageLayer.translateY = ty;
-      this._shapeLayer.translateX = tx;
-      this._shapeLayer.translateY = ty;
+      imageLayer.translateX = tx;
+      imageLayer.translateY = ty;
+      shapeLayer.translateX = tx;
+      shapeLayer.translateY = ty;
       this._scaleRate = s;
-      this._imageLayer.zoom(s);
-      this._shapeLayer.zoom(s);
-      this._imageLayer._draw();
-      this._shapeLayer.drawHistory();
+      imageLayer.zoom(s);
+      shapeLayer.zoom(s);
+      imageLayer._draw();
+      shapeLayer.drawHistory();
 
       if (t < 1) {
         this._rafId = requestAnimationFrame(step);
@@ -685,7 +687,10 @@ export class AnnotationController {
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current] as RectShape;
         const c = self._state.resizeCache!;
         const img = self._shapeLayer!.toImage(e.offsetX, e.offsetY);
-        const local = self._shapeLayer!._toLocal(img.x, img.y, s);
+        // _toLocal 必须基于缓存的原始中心计算，避免每帧用被修改后的 s 做原点导致累积偏移
+        const cos_n = Math.cos(-c.rotation), sin_n = Math.sin(-c.rotation);
+        const dx_img = img.x - c.x, dy_img = img.y - c.y;
+        const local = { x: dx_img * cos_n - dy_img * sin_n, y: dx_img * sin_n + dy_img * cos_n };
         const dX = local.x - self._state.resizeStartLocal!.x;
         const dY = local.y - self._state.resizeStartLocal!.y;
         const r = self._state.resizeDirection;

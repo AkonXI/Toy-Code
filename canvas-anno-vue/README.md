@@ -17,7 +17,7 @@
 - 完成图形显示名称标签（分组色背景），选中高亮
 - Ctrl+点击折线/多边形边缘插入新顶点
 - 列表点击自动切换选择模式并选中
-- 撤销/重做（单栈快照架构）
+- 撤销/重做（环形缓冲区，上限 100 步）
 - 删除选中 / 清空全部
 - 可配置颜色组（1-4 组）
 - 可配置启用的标注类型（未启用的显示禁用态）
@@ -25,7 +25,7 @@
 - 完整快捷键（模式切换、颜色组、缩放、撤销重做、平移、完成/删除）
 - 只读模式 + v-model 双向绑定，支持审核和回显
 - 模块化引擎架构：`types` / `utils` / `image-layer` / `shape-layer` / `controller`
-- 轨迹比对：两标注间相似度/最大误差校验，Canvas 叠加可视化违规段 + OBB
+- 轨迹比对：两标注间相似度/最大误差校验，Canvas 叠加可视化 + OBB，Web Worker 异步不阻塞主线程
 
 ## 用法
 
@@ -158,7 +158,7 @@ src/engine/
   utils.ts           — 工具函数（deepCopy, normalizeAngle, buildGroupMap）
   image-layer.ts     — 图像层（背景图加载、缩放、平移）
   shape-layer.ts     — 图形层（绘制、命中检测、顶点插入、形状标签、坐标变换）
-  controller.ts      — 控制器（事件处理、交互模式、状态管理、撤销重做）
+  controller.ts      — 控制器（事件处理、交互模式、状态管理、撤销重做，历史栈上限 100）
   index.ts           — 统一导出
 
 src/matcher/
@@ -167,6 +167,7 @@ src/matcher/
   resample.ts        — 弧长等距重采样
   bbox.ts            — AABB + OBB 包围盒（PCA 定向包围盒）
   matcher.ts         — 核心比对算法（单向 Hausdorff 距离 + 相似度 + 重合率）
+  worker.ts          — Web Worker 封装，比对异步执行不卡 UI
   index.ts           — 统一导出
 ```
 

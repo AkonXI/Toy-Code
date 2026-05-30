@@ -175,18 +175,23 @@ async function handleUpload() {
   uploadProgress.value = 0
   uploadStatusText.value = '正在上传文件...'
 
-  // 后端 LLM 解析较慢时前端给出进度反馈（非真实，仅视觉安抚）
+  const startTime = Date.now()
+  const phases = [
+    { max: 15, text: '正在上传文件...' },
+    { max: 30, text: '正在提取文件内容...' },
+    { max: 55, text: '正在解析为结构化格式...' },
+    { max: 80, text: '正在构建索引...' },
+    { max: 93, text: '即将完成...' },
+    { max: 99.5, text: '最后处理中...' },
+  ]
+
   uploadProgressTimer = setInterval(() => {
-    if (uploadProgress.value < 90) {
-      const step = Math.max(1, (90 - uploadProgress.value) / 15)
-      uploadProgress.value += step
-      if (uploadProgress.value > 20 && uploadProgress.value <= 40)
-        uploadStatusText.value = '正在提取文件内容...'
-      else if (uploadProgress.value > 40 && uploadProgress.value <= 70)
-        uploadStatusText.value = '正在解析为结构化格式...'
-      else if (uploadProgress.value > 70) uploadStatusText.value = '即将完成...'
-    }
-  }, 1000)
+    const t = (Date.now() - startTime) / 1000
+    const max = 99.5 - 99.5 / Math.exp(t * 0.12)
+    uploadProgress.value = Math.floor(max * 10) / 10
+    const p = phases.find((ph) => uploadProgress.value <= ph.max)
+    if (p && uploadStatusText.value !== p.text) uploadStatusText.value = p.text
+  }, 150)
 
   try {
     const formData = new FormData()
@@ -198,8 +203,14 @@ async function handleUpload() {
       timeout: 240000
     })
 
-    uploadProgress.value = 100
+    if (uploadProgressTimer) clearInterval(uploadProgressTimer)
     uploadStatusText.value = '解析完成'
+    const animateTo100 = () => {
+      if (uploadProgress.value >= 99.9) { uploadProgress.value = 100; return }
+      uploadProgress.value += Math.max(0.5, (100 - uploadProgress.value) / 8)
+      requestAnimationFrame(animateTo100)
+    }
+    animateTo100()
 
     const { conversationId } = result as unknown as {
       conversationId: string

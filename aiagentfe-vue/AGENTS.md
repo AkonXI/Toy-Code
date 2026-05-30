@@ -1,6 +1,6 @@
 # aiagentfe-vue
 
-Vue 3 + Vite + TypeScript + Element Plus + Tailwind CSS v4
+Vue 3 + Vite + TypeScript + Element Plus + Tailwind CSS v4 + marked
 
 ## 操作指引
 
@@ -59,13 +59,20 @@ npm run format    # Prettier format
 
 ## Core Features
 
-- **Conversation Flow**: Upload resume → `POST /rag/start` → redirect to editor
+- **Conversation Flow**: Upload resume → `POST /rag/start` → simulated progress (指数衰减曲线, 6阶段) → redirect to editor
 - **RAG Chat**: SSE streaming via `@ai-sdk/vue (new Chat)` → tool results parsed into cards
-- **Message Queue**: Serial execution, dedup, drag reorder, cancel
+- **Message Queue**: Serial execution via `enqueueRequest`/`processQueue`, dedup, drag reorder, cancel/cancelAll
+- **Stop Button**: 发送+停止按钮共存（`v-if="isSearchProcessing"`），仅 search 流式回复可停止
+- **Queue State**: `isProcessing` 标记队列处理中 + `isSearchProcessing` 标记当前为 search 操作
+- **History Scroll**: 滚动到顶自动加载更多历史 + `restoreScrollPosition` 保持位置
+- **Initial Scroll**: `await nextTick()` → 双重 rAF `scrollToBottom()` 确保进入对话时滚动到底
+- **Markdown Rendering**: `marked` 标准解析（代码块、表格、标题），仅 assistant 消息，`white-space: pre-wrap` 仅应用于 user 消息
+- **Layout**: `justify-content: space-between` 左（attach+ref）右（stop+send）分组
+- **Loading/Error UI**: EditorPage skeleton + error result + 重试按钮
 - **Apply/Accept**: `/rag/apply-modification` → PDF regenerate
 - **Supplement**: Open dialog, contextualized query construction
 
 ## Testing
 
-- Vitest, 69 tests in `src/tests/utils.test.ts`
-- Coverage: auth, API types, store, Scene 2 flows, queue, reasoning, disabled cards
+- Vitest, 68 tests in `src/tests/utils.test.ts`
+- Coverage: auth, API types, store, queue, reasoning, disabled cards

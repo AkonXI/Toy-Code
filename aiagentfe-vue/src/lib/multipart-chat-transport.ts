@@ -6,9 +6,16 @@ export class MultipartChatTransport<
   UI_MESSAGE extends UIMessage
 > implements ChatTransport<UI_MESSAGE> {
   private fetchImpl: typeof fetch
+  private _abortController: AbortController | null = null
 
   constructor({ fetch: customFetch }: { api?: string; fetch?: typeof fetch }) {
     this.fetchImpl = customFetch || fetch
+  }
+
+  /** 停止当前流式请求并清空队列 */
+  stop() {
+    this._abortController?.abort()
+    this._abortController = null
   }
 
   async sendMessages(options: {
@@ -31,6 +38,8 @@ export class MultipartChatTransport<
     const headers: Record<string, string> = {
       ...(token ? { token } : {})
     }
+
+    this._abortController = new AbortController()
 
     let response: Response
 
@@ -56,7 +65,7 @@ export class MultipartChatTransport<
       response = await this.fetchImpl(api, {
         method: 'POST',
         body: formData,
-        signal: options.abortSignal,
+        signal: this._abortController.signal,
         headers
       })
     } else {
@@ -79,7 +88,7 @@ export class MultipartChatTransport<
       response = await this.fetchImpl(api, {
         method: 'POST',
         body: JSON.stringify(jsonBody),
-        signal: options.abortSignal,
+        signal: this._abortController.signal,
         headers
       })
     }

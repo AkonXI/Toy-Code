@@ -18,7 +18,7 @@ export default function LoginPage() {
         URL.revokeObjectURL(captchaUrl)
       }
     }
-  }, [])
+  }, [captchaUrl])
 
   const refreshCaptcha = async (phone: string) => {
     try {

@@ -538,29 +538,6 @@ describe('utils', () => {
       expect(result.url).toBe('/conversations/conv_123/restore')
     })
 
-    it('uploadUpdatedPdf should create FormData with pdf and conversationId', () => {
-      // 模拟 uploadUpdatedPdf 函数
-      const mockUploadUpdatedPdf = (conversationId: string, pdfBlob: Blob, fileName: string) => {
-        const formData = new FormData()
-        formData.append('pdf', pdfBlob, fileName)
-        formData.append('conversationId', conversationId)
-        return {
-          method: 'POST',
-          url: '/rag/upload-pdf',
-          hasPdf: formData.has('pdf'),
-          hasConversationId: formData.has('conversationId')
-        }
-      }
-
-      const mockBlob = new Blob(['test'], { type: 'application/pdf' })
-      const result = mockUploadUpdatedPdf('conv_123', mockBlob, 'resume.pdf')
-
-      expect(result.method).toBe('POST')
-      expect(result.url).toBe('/rag/upload-pdf')
-      expect(result.hasPdf).toBe(true)
-      expect(result.hasConversationId).toBe(true)
-    })
-
     it('getReferenceFiles should call GET /rag/docs with conversationId', () => {
       const mockGetRefs = (conversationId: string) => {
         return { method: 'GET', url: '/rag/docs', params: { conversationId } }

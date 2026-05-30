@@ -80,14 +80,13 @@
         >
           <div class="message-bubble">
             <template v-if="msg.role === 'assistant'">
-              <span v-if="msg.content" class="msg-text">{{ msg.content }}</span>
+              <span v-if="msg.content" class="msg-text" :class="msg.isProcessing ? '[&>:last-child]:after:content-[\"▊\"] [&>:last-child]:after:animate-pulse' : ''" v-html="parseMarkdown(msg.content)"></span>
               <div v-else-if="isLoading" class="loading-spinner">
                 <el-icon class="is-loading">
                   <Loading />
                 </el-icon>
                 <span>正在思考...</span>
               </div>
-              <span v-if="msg.isProcessing" class="cursor-blink">▊</span>
             </template>
             <span v-else class="msg-text">{{ msg.content }}</span>
           </div>
@@ -182,6 +181,7 @@
         />
       </div>
       <div class="input-actions">
+        <div class="flex items-center gap-2">
         <button class="attach-btn" @click="fileInputRef?.click()" title="上传参考资料">
           <svg
             width="18"
@@ -213,6 +213,18 @@
           </svg>
           <span class="ref-btn-text">参考资料</span>
         </button>
+        </div>
+        <div class="flex items-center gap-1.5">
+        <button
+          v-if="isSearchProcessing"
+          class="send-btn stop-btn"
+          @click="$emit('stop')"
+          title="停止生成并清空队列"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+            <rect x="5" y="5" width="14" height="14" rx="2" />
+          </svg>
+        </button>
         <button
           class="send-btn"
           :disabled="!input.trim() && selectedFiles.length === 0"
@@ -230,6 +242,7 @@
             <path d="M22 2L15 22L11 13L2 9L22 2Z" />
           </svg>
         </button>
+        </div>
       </div>
     </div>
   </el-card>
@@ -267,6 +280,11 @@
 import { ref, reactive, watch, nextTick } from 'vue'
 import { Menu, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { marked } from 'marked'
+
+function parseMarkdown(text: string): string {
+  try { return (marked.parse(text, { async: false }) as string) || text } catch { return text }
+}
 import OptimizationCard from './OptimizationCard.vue'
 import ModificationReview from './ModificationReview.vue'
 import type { OptimizationItem, ModificationItem, Message } from '@/types/chat'
@@ -310,6 +328,7 @@ const props = defineProps<{
   hasMoreHistory: boolean
   requestQueue: QueueItem[]
   isProcessing: boolean
+  isSearchProcessing: boolean
   pendingCount: number
   disabledOpts?: Set<string>
   disabledMods?: Set<string>
@@ -333,6 +352,7 @@ const emit = defineEmits<{
   'cancel-all-pending': []
   'reorder-queue': [newQueue: any[]]
   'toggle-reasoning': [msgId: string]
+  stop: []
 }>()
 
 const chatRef = ref<HTMLElement>()
@@ -446,14 +466,18 @@ function handleChatScroll() {
   })
 }
 
+let needsScroll = false
+
 function scrollToBottom() {
-  nextTick(() => {
-    requestAnimationFrame(() => {
+  if (!needsScroll) {
+    needsScroll = true
+    nextTick(() => {
       if (chatRef.value) {
         chatRef.value.scrollTop = chatRef.value.scrollHeight
       }
+      needsScroll = false
     })
-  })
+  }
 }
 
 function getScrollHeight(): number {
@@ -589,10 +613,12 @@ defineExpose({
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.6;
-  white-space: pre-wrap;
   word-break: break-word;
   max-width: 100%;
 }
+
+.message-bubble :deep(p) { margin: 0; }
+.message-bubble :deep(p + p) { margin-top: 0.4em; }
 
 .message-item.user .message-bubble {
   background: #409eff;
@@ -600,6 +626,7 @@ defineExpose({
   margin-left: auto;
   width: fit-content;
   max-width: 85%;
+  white-space: pre-wrap;
 }
 
 .message-item.assistant .message-bubble {
@@ -607,21 +634,6 @@ defineExpose({
   color: #333;
   width: fit-content;
   max-width: 85%;
-}
-
-.cursor-blink {
-  animation: blink 1s infinite;
-}
-
-@keyframes blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  51%,
-  100% {
-    opacity: 0;
-  }
 }
 
 .loading-spinner {
@@ -706,6 +718,7 @@ defineExpose({
   display: flex;
   gap: 8px;
   align-items: flex-end;
+  justify-content: space-between;
 }
 
 .attach-btn {
@@ -828,21 +841,25 @@ defineExpose({
 }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 12px;
-  background: #409eff;
-  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition:
-    background 0.2s,
-    transform 0.1s;
-  flex-shrink: 0;
-  margin-left: auto;
+  transition: all 0.2s;
+}
+.stop-btn {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+.stop-btn:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 .send-btn:hover:not(:disabled) {

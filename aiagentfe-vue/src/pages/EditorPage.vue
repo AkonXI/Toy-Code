@@ -1,5 +1,15 @@
 <template>
-  <div class="editor-page">
+  <div v-if="loading" class="flex justify-center items-center h-screen bg-[#f5f5f5]">
+    <el-skeleton :rows="8" animated style="width: 60%" />
+  </div>
+  <div v-else-if="error" class="flex justify-center items-center h-screen bg-[#f5f5f5]">
+    <el-result icon="error" title="加载失败" :sub-title="error">
+      <template #extra>
+        <el-button type="primary" @click="retryLoad">重试</el-button>
+      </template>
+    </el-result>
+  </div>
+  <div v-else class="editor-page">
     <div class="left-panel">
       <PdfPreview
         :pdf-url
@@ -27,6 +37,7 @@
         :has-more-history
         :request-queue
         :is-processing
+        :is-search-processing
         :pending-count="pendingQueueCount"
         :disabled-opts
         :disabled-mods
@@ -45,6 +56,7 @@
         "
         @reject-modification="rejectModification"
         @submit-supplement="submitSupplement"
+        @stop="handleStop"
         @toggle-drawer="drawerVisible = true"
         @go-back="goBack"
         @cancel-request="cancelRequest"
@@ -90,6 +102,12 @@ const conversationId = ref('')
 const loading = ref(true)
 const error = ref('')
 const drawerVisible = ref(false)
+
+function retryLoad() {
+  error.value = ''
+  loading.value = true
+  window.location.reload()
+}
 const docVersions = ref<DocVersion[]>([])
 const activeVersionIdx = ref(0)
 const currentVersionLabel = computed(() => {
@@ -133,6 +151,7 @@ const MAX_SUPPLEMENTS = 3
 const showReasoningMap = new Map<string, boolean>()
 const autoScroll = ref(true)
 let chat!: Chat<any>
+let transport!: MultipartChatTransport<any>
 let chatWatchHandle: (() => void) | null = null
 const sdkSyncedIds = new Set<string>()
 
@@ -149,35 +168,44 @@ interface QueuedRequest {
   wasSupplement?: boolean
 }
 
-const requestQueue = ref<QueuedRequest[]>([])
-const isProcessing = ref(false)
-
 function getLabel(type: string, payload?: any): string {
   if (type === 'search') return `发送消息：${payload?.text?.slice(0, 20) || '...'}`
-  if (type === 'apply') return `采纳建议：${payload?.field || ''}`
-  if (type === 'accept') return `确认修改：${payload?.field || ''}`
-  return type
+  return type === 'apply'
+    ? `采纳建议：${payload?.field || ''}`
+    : `确认修改：${payload?.field || ''}`
 }
 
+const requestQueue = ref<QueuedRequest[]>([])
+const isProcessing = ref(false)
+const isSearchProcessing = ref(false)
+
 function enqueueRequest(
-  req: Omit<QueuedRequest, 'id' | 'timestamp' | 'status' | 'label' | 'canceled'>,
-  payload?: any
+  req: { type: 'search' | 'apply' | 'accept'; execute: () => void; disabledKey?: string; wasSupplement?: boolean },
+  payload?: any,
 ) {
   if (payload?.field) {
     const dupIdx = requestQueue.value.findIndex(
-      (r) => r.status === 'pending' && r.type === req.type && r.label.includes(payload.field)
+      (r) => r.status === 'pending' && r.type === req.type && r.label.includes(payload.field),
     )
     if (dupIdx !== -1) requestQueue.value.splice(dupIdx, 1)
   }
-  requestQueue.value.push({
+  const newReq: QueuedRequest = {
     ...req,
     id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     label: getLabel(req.type, payload),
     status: 'pending',
     canceled: false,
-    timestamp: Date.now()
-  })
-  if (!isProcessing.value) processQueue()
+    timestamp: Date.now(),
+  }
+  requestQueue.value.push(newReq)
+  setTimeout(() => processQueue(), 0)
+}
+
+function handleStop() {
+  transport.stop()
+  requestQueue.value = []
+  isProcessing.value = false
+  isSearchProcessing.value = false
 }
 
 function processQueue() {
@@ -186,10 +214,13 @@ function processQueue() {
   }
   if (requestQueue.value.length === 0) {
     isProcessing.value = false
+    isSearchProcessing.value = false
     return
   }
-  isProcessing.value = true
   const current = requestQueue.value[0]
+  if (current.status !== 'pending') return
+  isProcessing.value = true
+  isSearchProcessing.value = current.type === 'search'
   current.status = 'processing'
   isLoading.value = true
   try {
@@ -401,23 +432,15 @@ async function switchVersion(idx: number) {
 
 async function handleRestore(refId: number) {
   try {
+    const v = docVersions.value.find((d) => d.refId === refId)
+    const ts = Date.now()
+    messages.value.push({ id: `local-restore-${ts}`, role: 'assistant', content: `已恢复到版本 v${v?.version ?? ''}` })
+    autoScroll.value = true
+    chatPanelRef.value?.scrollToBottom()
     await restoreDocVersion(refId)
-    ElMessage.success('已恢复到该版本')
+    ElMessage.success('已恢复')
     await loadDocHistory()
-    if (conversationId.value) {
-      const { getConversationMessages } = await import('@/api')
-      const result = await getConversationMessages(conversationId.value, 1, 1, 'DESC')
-      const docs = result.data?.documents ?? []
-      if (docs.length > 0) {
-        const latestDoc = docs[0]
-        const fileUrl = latestDoc.file_url.startsWith('/api')
-          ? latestDoc.file_url
-          : `/api${latestDoc.file_url}`
-        const blob = (await api.get(fileUrl.replace('/api', ''), { responseType: 'blob' })) as Blob
-        if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value)
-        pdfUrl.value = URL.createObjectURL(blob)
-      }
-    }
+    await reloadPdfFromServer()
   } catch (e) {
     console.error('Failed to restore version:', e)
     ElMessage.error('恢复失败')
@@ -623,7 +646,7 @@ function initChat(historyMessages?: any[]) {
     chatWatchHandle = null
   }
 
-  const transport = new MultipartChatTransport({
+  transport = new MultipartChatTransport({
     fetch: fetchWithAuth
   })
 
@@ -730,7 +753,14 @@ function initChat(historyMessages?: any[]) {
       const newSdkMessages = sdkMessages.filter((m) => m.id && !sdkSyncedIds.has(m.id))
       if (newSdkMessages.length > 0) {
         const newLocalMessages = mapSdkMessages(newSdkMessages)
-        messages.value.push(...newLocalMessages)
+        for (const msg of newLocalMessages) {
+          const localIdx = messages.value.findIndex((m) => m.role === 'user' && m.id?.startsWith('local-restore-'))
+          if (localIdx !== -1) {
+            messages.value[localIdx] = msg
+          } else {
+            messages.value.push(msg)
+          }
+        }
         newSdkMessages.forEach((m) => {
           if (m.id) sdkSyncedIds.add(m.id)
         })

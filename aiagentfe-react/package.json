@@ -18,8 +18,10 @@
     "ai": "^6.0.180",
     "antd": "^6.3.7",
     "axios": "^1.15.2",
+    "marked": "^18.0.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.15.0",
     "zod": "^3.23.8",
     "zustand": "^5.0.13"

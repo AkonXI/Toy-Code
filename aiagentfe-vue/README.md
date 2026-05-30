@@ -11,14 +11,16 @@ AI 简历优化的 Vue 前端 —— 与 AI 对话优化简历，流式建议 + 
 - **状态管理:** Pinia 3
 - **路由:** Vue Router 4
 - **AI SDK:** @ai-sdk/vue（new Chat）
+- **Markdown:** marked
 - **HTTP:** axios
 
 ## 功能
 
 - 对话管理（列表、新建、切换、删除）
-- 简历上传与 AI 解析
 - 分屏编辑器：PDF 预览 + 对话面板
-- 流式 AI 对话，支持推理过程展示
+- 流式 AI 对话，支持推理过程展示 + 标准 Markdown 渲染
+- 消息队列（串行执行 + 去重 + 拖拽排序 + 取消）
+- 发送/停止按钮共存，仅流式搜索可停止
 - 优化建议卡片，一键应用
 - 修改审核（接受/补充/拒绝）
 
@@ -28,5 +30,5 @@ AI 简历优化的 Vue 前端 —— 与 AI 对话优化简历，流式建议 + 
 npm install
 npm run dev       # Vite 开发服务器（代理 /api -> localhost:3000）
 npm run build     # vue-tsc --noEmit && vite build
-npm test          # 运行测试（69 项）
+npm test          # 运行测试（68 项）
 ```

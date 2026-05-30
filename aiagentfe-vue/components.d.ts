@@ -24,6 +24,7 @@ declare module 'vue' {
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElResult: typeof import('element-plus/es')['ElResult']
+    ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElTag: typeof import('element-plus/es')['ElTag']
     ModificationReview: typeof import('./src/components/ModificationReview.vue')['default']
     OptimizationCard: typeof import('./src/components/OptimizationCard.vue')['default']

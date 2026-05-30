@@ -38,17 +38,25 @@ export default function ConversationsPage() {
     setUploadProgress(0)
     setUploadStatusText('正在上传文件...')
 
+    const startTime = Date.now()
+    const phases = [
+      { max: 15, text: '正在上传文件...' },
+      { max: 30, text: '正在提取文件内容...' },
+      { max: 55, text: '正在解析为结构化格式...' },
+      { max: 80, text: '正在构建索引...' },
+      { max: 93, text: '即将完成...' },
+      { max: 99.5, text: '最后处理中...' }
+    ]
+
     uploadTimer.current = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) return prev
-        const step = Math.max(1, (90 - prev) / 15)
-        const next = prev + step
-        if (next > 20 && next <= 40) setUploadStatusText('正在提取文件内容...')
-        else if (next > 40 && next <= 70) setUploadStatusText('正在解析为结构化格式...')
-        else if (next > 70) setUploadStatusText('即将完成...')
-        return next
+      const t = (Date.now() - startTime) / 1000
+      const max = 99.5 - 99.5 / Math.exp(t * 0.12)
+      setUploadProgress(Math.floor(max * 10) / 10)
+      setUploadStatusText((prev) => {
+        const p = phases.find((ph) => Math.floor(max * 10) / 10 <= ph.max)
+        return p ? p.text : prev
       })
-    }, 1000)
+    }, 150)
 
     try {
       const formData = new FormData()
@@ -59,13 +67,24 @@ export default function ConversationsPage() {
         timeout: 240000
       })) as unknown as { conversationId: string; initialPrompt: string }
       const { conversationId } = result
-      setUploadProgress(100)
+
+      if (uploadTimer.current) clearInterval(uploadTimer.current)
       setUploadStatusText('解析完成')
+      const animateTo100 = () => {
+        setUploadProgress((prev) => {
+          if (prev >= 99.9) return 100
+          const next = prev + Math.max(0.5, (100 - prev) / 8)
+          requestAnimationFrame(animateTo100)
+          return Math.min(next, 100)
+        })
+      }
+      animateTo100()
+
       const fileBlobUrl = URL.createObjectURL(selectedFile)
       setConversationId(conversationId)
       setPromptStore(prompt.trim() || '请分析这份简历')
       setFile(selectedFile.name, selectedFile.type, '', fileBlobUrl)
-      setTimeout(() => navigate(`/editor/${conversationId}`), 500)
+      setTimeout(() => navigate(`/editor/${conversationId}`), 600)
     } catch (e) {
       console.error('Upload failed:', e)
       message.error('上传失败，请重试')

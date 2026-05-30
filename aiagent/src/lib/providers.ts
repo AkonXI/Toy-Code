@@ -1,6 +1,9 @@
 import { ChatDeepSeek } from "@langchain/deepseek";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { pipeline } from "@huggingface/transformers";
+import pRetry from "p-retry";
+import crypto from "crypto";
+import { redis } from "./redis";
 
 export const DEFAULT_MODEL = "deepseek-v4-pro";
 
@@ -10,27 +13,34 @@ let _fastModel: ChatDeepSeek | null = null;
 
 export function getChatModel(): ChatDeepSeek {
   if (!_chatModel) {
-    _chatModel = new ChatDeepSeek({
+    const raw = new ChatDeepSeek({
       apiKey: process.env.DEEPSEEK_API_KEY,
       model: DEFAULT_MODEL,
     });
+    _chatModel = withRetry(raw);
   }
   return _chatModel;
 }
 
 export function getFastModel(): ChatDeepSeek {
   if (!_fastModel) {
-    _fastModel = new ChatDeepSeek({
+    const raw = new ChatDeepSeek({
       apiKey: process.env.DEEPSEEK_API_KEY,
       model: "deepseek-v4-flash",
       maxTokens: 8192,
       temperature: 0.1,
-      modelKwargs: {
-        thinking: { type: "disabled" },
-      },
+      modelKwargs: { thinking: { type: "disabled" } },
     });
+    _fastModel = withRetry(raw);
   }
   return _fastModel;
+}
+
+function withRetry(model: ChatDeepSeek): ChatDeepSeek {
+  const rawInvoke = model.invoke.bind(model);
+  model.invoke = (input: any, options?: any) =>
+    pRetry(() => rawInvoke(input, options), { retries: 3, factor: 2, minTimeout: 1000 });
+  return model;
 }
 
 // AI SDK 模型（主搜索流：streamText + tools + reasoning）
@@ -38,86 +48,61 @@ export const deepseek = createDeepSeek({
   apiKey: process.env.DEEPSEEK_API_KEY,
 });
 
-// --- 文本向量化 ---
+// --- 文本向量化（Redis 缓存 + 内存回退） ---
 
 let embedPipe: any = null;
+let embedLoading: Promise<any> | null = null;
+const CACHE_TTL = 86400 // Redis TTL: 24h
+const MAX_MEM_CACHE = 500
+const _memCache = new Map<string, number[]>()
+
+function _hash(text: string): string {
+  return "embed:" + crypto.createHash("sha256").update(text.trim()).digest("hex").substring(0, 16)
+}
+
+async function _getFromCache(key: string): Promise<number[] | null> {
+  if (redis) {
+    try {
+      const raw = await redis.get(key)
+      if (raw) return JSON.parse(raw)
+    } catch {}
+  }
+  return _getFromMem(key)
+}
+
+function _getFromMem(key: string): number[] | null {
+  const val = _memCache.get(key)
+  if (val) { _memCache.delete(key); _memCache.set(key, val) }
+  return val ?? null
+}
+
+async function _setToCache(key: string, vec: number[]): Promise<void> {
+  if (redis) {
+    try {
+      await redis.setex(key, CACHE_TTL, JSON.stringify(vec))
+    } catch {}
+  }
+  if (_memCache.size >= MAX_MEM_CACHE) {
+    _memCache.delete(_memCache.keys().next().value!)
+  }
+  // LRU: delete first, then set to mark as most recently used
+  _memCache.delete(key)
+  _memCache.set(key, vec)
+}
 
 export async function getEmbedding(text: string): Promise<number[]> {
   if (!embedPipe) {
-    embedPipe = await pipeline("feature-extraction", "Xenova/bge-small-zh-v1.5");
+    if (!embedLoading) {
+      embedLoading = pipeline("feature-extraction", "Xenova/bge-small-zh-v1.5");
+    }
+    embedPipe = await embedLoading;
   }
+  const key = _hash(text)
+  const cached = await _getFromCache(key)
+  if (cached) return cached
+
   const result = await embedPipe(text, { pooling: "mean", normalize: true });
-  return Array.from(result.data);
-}
-
-export function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0, na = 0, nb = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
-  const mag = Math.sqrt(na) * Math.sqrt(nb);
-  return mag === 0 ? 0 : dot / mag;
-}
-
-// --- 备选：纯 JS TF-IDF 向量化（当 transformer 模型不可用时降级使用）---
-
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\u4e00-\u9fff]/g, " ")
-    .split(/\s+/)
-    .filter((t) => t.length > 0 && t.length < 20);
-}
-
-interface VocabEntry {
-  index: number
-  df: number
-}
-
-export class TextVectorizer {
-  private vocab: Record<string, VocabEntry> = {};
-  private dim = 0;
-  private totalDocs = 0;
-
-  fit(docs: string[]): void {
-    this.vocab = {};
-    this.totalDocs = docs.length;
-    for (const doc of docs) {
-      const seen = new Set<string>();
-      for (const t of tokenize(doc)) {
-        if (!seen.has(t)) {
-          seen.add(t);
-          if (this.vocab[t]) {
-            this.vocab[t].df++;
-          } else {
-            this.vocab[t] = { index: this.dim++, df: 1 };
-          }
-        }
-      }
-    }
-  }
-
-  transform(text: string): number[] {
-    const vec = new Array(this.dim).fill(0);
-    const tf: Record<string, number> = {};
-    for (const t of tokenize(text)) {
-      tf[t] = (tf[t] || 0) + 1;
-    }
-    for (const [term, freq] of Object.entries(tf)) {
-      const entry = this.vocab[term];
-      if (entry) {
-        const idf = Math.log((this.totalDocs + 1) / (entry.df + 1)) + 1;
-        vec[entry.index] = freq * idf;
-      }
-    }
-    const mag = Math.sqrt(vec.reduce((s, v) => s + v * v, 0));
-    if (mag > 0) for (let i = 0; i < vec.length; i++) vec[i] /= mag;
-    return vec;
-  }
-
-  get dimSize(): number {
-    return this.dim;
-  }
+  const vec = Array.from(result.data as number[])
+  await _setToCache(key, vec)
+  return vec
 }

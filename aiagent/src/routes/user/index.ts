@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
+
 import { createAuthWithUserMiddleware } from "../../auth/token";
 import { getUserByPhone } from "../../storage/repository";
 
-const router = Router();
+const router: Router = Router();
 const authWithUser = createAuthWithUserMiddleware();
 
 router.get("/profile", authWithUser, async (req: Request, res: Response) => {

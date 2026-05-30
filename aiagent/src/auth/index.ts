@@ -4,7 +4,7 @@ import { redis, inMemoryCaptcha } from "./captcha";
 import { storeToken, verifyToken, removeToken } from "./token";
 import { ensureUser, recordLogin } from "../storage/repository";
 
-const router = Router();
+const router: Router = Router();
 
 router.post("/login", async (req: Request, res: Response) => {
   const { phone, captcha, key } = req.body;

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+
 import { verifyToken, createAuthWithUserMiddleware } from "../../auth/token";
 import {
   getUserIdByPhone,
@@ -11,24 +12,21 @@ import {
   restoreConversation,
 } from "../../storage/repository";
 import { getDatabase } from "../../storage/database";
+import { parsePageParams } from "../../lib/pagination";
 
-const router = Router();
+const router: Router = Router();
 const authWithUser = createAuthWithUserMiddleware();
 
 // 获取会话列表
 router.get("/", authWithUser, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const page = Math.max(1, parseInt(String(req.query.page || "1")));
-    const pageSize = Math.min(
-      Math.max(1, parseInt(String(req.query.pageSize || "20"))),
-      100,
-    );
+    const { page, pageSize } = parsePageParams(req.query, 20);
 
     const result = await getUserConversations(userId, page, pageSize);
     res.json({
       data: result.data,
-      pagination: { page, pageSize, total: result.total },
+      pagination: { page: result.page, pageSize: result.pageSize, total: result.total },
     });
   } catch (error) {
     console.error("Error fetching conversations:", error);
@@ -48,11 +46,7 @@ router.get("/:id/messages", authWithUser, async (req: Request, res: Response) =>
       return;
     }
 
-    const page = Math.max(1, parseInt(String(req.query.page || "1")));
-    const pageSize = Math.min(
-      Math.max(1, parseInt(String(req.query.pageSize || "100"))),
-      200,
-    );
+    const { page, pageSize } = parsePageParams(req.query, 100);
     const order = (req.query.order as "ASC" | "DESC") || "DESC";
 
     const [messagesResult, documents] = await Promise.all([

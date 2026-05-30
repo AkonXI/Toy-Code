@@ -4,8 +4,9 @@ import captchaRouter from "../auth/captcha";
 import userRoute from "./user";
 import conversationRoute from "./conversation";
 import adminRoute from "./admin";
+import type { Router } from "express";
 
-const routes = [
+const routes: { name: string; path: string; handler: Router }[] = [
   { name: "admin", path: "admin", handler: adminRoute },
   { name: "rag", path: "rag", handler: ragRoute },
   { name: "auth", path: "auth", handler: authRoute },

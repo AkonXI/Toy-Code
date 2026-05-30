@@ -1,36 +1,21 @@
 import * as lancedb from "@lancedb/lancedb";
-import { getEmbedding, TextVectorizer } from "./providers";
+import { getEmbedding } from "./providers";
 
 const DB_PATH = "./data/lancedb";
 
 let db: lancedb.Connection | null = null;
-let useRealEmbedding = true;
 
 async function getDb(): Promise<lancedb.Connection> {
   if (!db) db = await lancedb.connect(DB_PATH);
   return db;
 }
 
-async function embed(text: string, vz: TextVectorizer): Promise<number[]> {
-  if (useRealEmbedding) {
-    try {
-      return await getEmbedding(text);
-    } catch {
-      useRealEmbedding = false;
-    }
-  }
-  return vz.transform(text);
+async function embed(text: string): Promise<number[]> {
+  return getEmbedding(text);
 }
 
-async function embedBatch(texts: string[], vz: TextVectorizer): Promise<number[][]> {
-  if (useRealEmbedding) {
-    try {
-      return await Promise.all(texts.map((t) => getEmbedding(t)));
-    } catch {
-      useRealEmbedding = false;
-    }
-  }
-  return texts.map((t) => vz.transform(t));
+async function embedBatch(texts: string[]): Promise<number[][]> {
+  return Promise.all(texts.map((t) => getEmbedding(t)));
 }
 
 export async function indexSystemDocumentChunks(
@@ -42,9 +27,7 @@ export async function indexSystemDocumentChunks(
   if (chunks.length === 0) return;
 
   const texts = chunks.map((c) => c.pageContent);
-  const vz = new TextVectorizer();
-  vz.fit(texts);
-  const vectors = await embedBatch(texts, vz);
+  const vectors = await embedBatch(texts);
 
   const conn = await getDb();
   const data = chunks.map((c, i) => ({
@@ -58,10 +41,16 @@ export async function indexSystemDocumentChunks(
 
   const tableNames = await conn.tableNames();
   if (!tableNames.includes("system_chunks")) {
-    await conn.createTable("system_chunks", data);
+    const table = await conn.createTable("system_chunks", data);
+    await table.createIndex("vector", {
+      config: lancedb.Index.ivfPq({ numPartitions: Math.max(2, Math.ceil(chunks.length / 100)) }),
+    });
   } else {
     const table = await conn.openTable("system_chunks");
     await table.add(data);
+    await table.createIndex("vector", {
+      config: lancedb.Index.ivfPq({ numPartitions: Math.max(2, Math.ceil(chunks.length / 100)) }),
+    });
   }
 
   console.log(
@@ -79,11 +68,7 @@ export async function searchSystemChunks(
   if (!tableNames.includes("system_chunks")) return [];
 
   const table = await conn.openTable("system_chunks");
-
-  const vz = new TextVectorizer();
-  const queryVec = await embed(query, vz);
-  const hasValue = queryVec.some((v) => v !== 0);
-  if (!hasValue) return [];
+  const queryVec = await embed(query);
 
   let results: any[];
   if (category) {
@@ -94,7 +79,7 @@ export async function searchSystemChunks(
 
   return results.map((r: any) => ({
     text: r.text as string,
-    score: Math.max(0, 1 - (r._distance ?? 0)),
+    score: 1 / (1 + (r._distance ?? 0) * (r._distance ?? 0)),
     docType: r.docType as string,
     category: r.category as string,
   }));

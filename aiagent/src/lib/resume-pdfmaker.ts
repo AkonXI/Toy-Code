@@ -1,16 +1,22 @@
 import path from "path";
+import fs from "fs";
+import pdfMake from "pdfmake";
+pdfMake.setLocalAccessPolicy(() => true);
+pdfMake.setUrlAccessPolicy(() => false);
 
-const pdfMake = require("pdfmake");
+const FONT_REGULAR = path.join(process.cwd(), "fonts", "SourceHanSansSC-Regular.otf");
+const FONT_BOLD = path.join(process.cwd(), "fonts", "SourceHanSansSC-Bold.otf");
 
-pdfMake.urlAccessPolicy = () => false;
-pdfMake.localAccessPolicy = () => true;
+if (!fs.existsSync(FONT_REGULAR) || !fs.existsSync(FONT_BOLD)) {
+  console.warn("SourceHanSansSC font files not found, PDF output may be corrupted");
+}
 
 pdfMake.fonts = {
   SourceHan: {
-    normal: path.join(process.cwd(), "fonts", "SourceHanSansSC-Regular.otf"),
-    bold: path.join(process.cwd(), "fonts", "SourceHanSansSC-Bold.otf"),
-    italics: path.join(process.cwd(), "fonts", "SourceHanSansSC-Regular.otf"),
-    bolditalics: path.join(process.cwd(), "fonts", "SourceHanSansSC-Bold.otf"),
+    normal: FONT_REGULAR,
+    bold: FONT_BOLD,
+    italics: FONT_REGULAR,
+    bolditalics: FONT_BOLD,
   },
 };
 
@@ -333,7 +339,7 @@ export async function generateResumePDF(
     content,
   };
 
-  const pdfDoc = pdfMake.createPdf(docDefinition);
+  const pdfDoc = pdfMake.createPdf(docDefinition as any);
   const buffer: Buffer = await pdfDoc.getBuffer();
   return new Uint8Array(buffer);
 }

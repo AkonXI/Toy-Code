@@ -109,19 +109,6 @@ CREATE TABLE IF NOT EXISTS conversation_summaries (
   end_message_id INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );
-
--- 文档-块映射表
-CREATE TABLE IF NOT EXISTS document_chunks_mapping (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  conversation_id TEXT NOT NULL,
-  ref_id INTEGER NOT NULL,
-  file_name TEXT NOT NULL,
-  file_type TEXT NOT NULL,
-  chunk_start INTEGER NOT NULL,
-  chunk_end INTEGER NOT NULL,
-  created_at INTEGER NOT NULL
-);
-
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_login_history_user ON login_history(user_id);
@@ -136,4 +123,3 @@ CREATE INDEX IF NOT EXISTS idx_global_docs_hash ON global_documents(file_hash);
 CREATE INDEX IF NOT EXISTS idx_conv_doc_refs_conversation ON conversation_document_refs(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_conv_doc_refs_global ON conversation_document_refs(global_doc_id);
 CREATE INDEX IF NOT EXISTS idx_conv_summaries_conversation ON conversation_summaries(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_doc_chunks_map_conversation ON document_chunks_mapping(conversation_id);

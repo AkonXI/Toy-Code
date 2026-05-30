@@ -1,4 +1,6 @@
 import { getDatabase } from "./database";
+
+import { paginate, type PaginatedResult } from "../lib/pagination";
 import { triggerAutoSummary } from "./summary-manager";
 import crypto from "crypto";
 
@@ -382,14 +384,6 @@ export interface User {
 
 // ===== 历史上下文 =====
 
-export function clearConversation(conversationId: string) {
-  const db = getDatabase();
-  db.prepare("DELETE FROM conversation_document_refs WHERE conversation_id = ?").run(conversationId);
-  db.prepare("DELETE FROM conversation_summaries WHERE conversation_id = ?").run(conversationId);
-  db.prepare("DELETE FROM document_chunks_mapping WHERE conversation_id = ?").run(conversationId);
-  db.prepare("DELETE FROM conversations WHERE id = ?").run(conversationId);
-}
-
 export function deleteConversation(
   conversationId: string,
 ): void {
@@ -445,30 +439,22 @@ export function getUserConversations(
   userId: number,
   page: number,
   pageSize: number,
-): { data: Conversation[]; total: number } {
+): PaginatedResult<Conversation> {
   const db = getDatabase();
-  const pageSafe = Math.min(Math.max(1, page), 10000);
-  const limit = Math.min(Math.max(pageSize, 1), 100);
-  const offset = (pageSafe - 1) * limit;
 
-  const totalRow = db
-    .prepare(
-      "SELECT COUNT(*) as cnt FROM conversations WHERE user_id = ? AND deleted_at IS NULL",
-    )
-    .get(userId) as { cnt: number };
-  const rows = db
-    .prepare(
-      `
-    SELECT id, user_id, title, status, created_at, updated_at
-    FROM conversations
-    WHERE user_id = ? AND deleted_at IS NULL
-    ORDER BY updated_at DESC
-    LIMIT ? OFFSET ?
-  `,
-    )
-    .all(userId, limit, offset) as Conversation[];
-
-  return { data: rows, total: totalRow.cnt };
+  return paginate<Conversation>(
+    db,
+    "SELECT COUNT(*) as cnt FROM conversations WHERE user_id = ? AND deleted_at IS NULL",
+    [userId],
+    `SELECT id, user_id, title, status, created_at, updated_at
+     FROM conversations
+     WHERE user_id = ? AND deleted_at IS NULL
+     ORDER BY updated_at DESC
+     LIMIT ? OFFSET ?`,
+    [userId],
+    page,
+    pageSize,
+  );
 }
 
 export function getConversationMessages(
@@ -478,31 +464,26 @@ export function getConversationMessages(
   order: "ASC" | "DESC" = "DESC",
 ): { data: MessageRecord[]; total: number; initialPrompt: string | null } {
   const db = getDatabase();
-  const pageSafe = Math.min(Math.max(1, page), 10000);
-  const limit = Math.min(Math.max(pageSize, 1), 200);
-  const offset = (pageSafe - 1) * limit;
   const safeOrder = order === "ASC" ? "ASC" : "DESC";
-
-  const totalRow = db
-    .prepare("SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?")
-    .get(conversationId) as { cnt: number };
-  const rows = db
-    .prepare(
-      `
-      SELECT id, conversation_id, role, content, reasoning, created_at
-    FROM messages
-    WHERE conversation_id = ?
-    ORDER BY created_at ${safeOrder}
-    LIMIT ? OFFSET ?
-  `,
-    )
-    .all(conversationId, limit, offset) as MessageRecord[];
+  const result = paginate<MessageRecord>(
+    db,
+    "SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?",
+    [conversationId],
+    `SELECT id, conversation_id, role, content, reasoning, created_at
+     FROM messages
+     WHERE conversation_id = ?
+     ORDER BY created_at ${safeOrder}
+     LIMIT ? OFFSET ?`,
+    [conversationId],
+    page,
+    pageSize,
+  );
 
   const convRow = db
     .prepare("SELECT initial_prompt FROM conversations WHERE id = ?")
     .get(conversationId) as { initial_prompt: string | null } | undefined;
 
-  return { data: rows, total: totalRow.cnt, initialPrompt: convRow?.initial_prompt || null };
+  return { data: result.data, total: result.total, initialPrompt: convRow?.initial_prompt || null };
 }
 
 export function getConversationDocuments(

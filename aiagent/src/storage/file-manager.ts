@@ -1,4 +1,5 @@
 import crypto from "crypto";
+
 import fs from "fs";
 import path from "path";
 import { getDatabase } from "./database";
@@ -120,8 +121,6 @@ export async function removeFileFromConversation(
 
     if (!refDoc) return;
 
-    txnDb.prepare("DELETE FROM document_chunks_mapping WHERE conversation_id = ? AND ref_id = ?").run(conversationId, refId);
-
     txnDb.prepare(
       "UPDATE chunks SET deleted = 1 WHERE conversation_id = ? AND ref_id = ? AND deleted = 0",
     ).run(conversationId, refId);
@@ -197,57 +196,6 @@ export async function cleanupOldVersions(
 
     transaction(db);
   }
-}
-
-export async function recordDocumentChunks(
-  conversationId: string,
-  refId: number,
-  fileName: string,
-  fileType: "resume" | "reference",
-  chunkStart: number,
-  chunkEnd: number,
-): Promise<void> {
-  const db = getDatabase();
-  db.prepare(
-    `INSERT INTO document_chunks_mapping (conversation_id, ref_id, file_name, file_type, chunk_start, chunk_end, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    conversationId,
-    refId,
-    fileName,
-    fileType,
-    chunkStart,
-    chunkEnd,
-    Date.now(),
-  );
-}
-
-export async function markChunksAsDeleted(
-  conversationId: string,
-  refId: number,
-): Promise<number> {
-  const db = getDatabase();
-  const mapping = db
-    .prepare(
-      "SELECT chunk_start, chunk_end FROM document_chunks_mapping WHERE conversation_id = ? AND ref_id = ?",
-    )
-    .get(conversationId, refId) as { chunk_start: number; chunk_end: number } | undefined;
-
-  if (!mapping) return 0;
-
-  const result = db
-    .prepare(
-      `UPDATE chunks SET deleted = 1
-       WHERE rowid IN (
-         SELECT rowid FROM chunks
-         WHERE conversation_id = ? AND deleted = 0
-         ORDER BY id
-         LIMIT ? OFFSET ?
-       )`,
-    )
-    .run(conversationId, mapping.chunk_end - mapping.chunk_start, mapping.chunk_start);
-
-  return result.changes;
 }
 
 export async function getChunksForConversation(

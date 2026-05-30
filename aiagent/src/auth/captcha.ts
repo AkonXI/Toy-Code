@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
+
 import crypto from "crypto";
 import { redis } from "../lib/redis";
+import { createCanvas } from "@napi-rs/canvas";
 
 const inMemoryCaptcha: Record<string, { text: string; phone: string; expiresAt: number }> = {};
 
@@ -14,7 +16,7 @@ export const captchaCleanupInterval = setInterval(() => {
 
 function generateCaptchaImage(text: string): Buffer {
   try {
-    const { createCanvas } = require("@napi-rs/canvas");
+
     const width = 150;
     const height = 50;
     const canvas = createCanvas(width, height);
@@ -68,7 +70,7 @@ function generateCaptchaImage(text: string): Buffer {
   }
 }
 
-const captchaRouter = Router();
+const captchaRouter: Router = Router();
 
 captchaRouter.post("/generate", async (req: Request, res: Response) => {
   try {
@@ -80,7 +82,7 @@ captchaRouter.post("/generate", async (req: Request, res: Response) => {
     }
 
     const text = Math.floor(100000 + Math.random() * 900000).toString();
-    const key = crypto.randomUUID();
+    const key = "captcha:" + crypto.randomUUID();
 
     if (redis && redis.status === "ready") {
       await redis.setex(key, 300, JSON.stringify({ phone, text }));

@@ -1,12 +1,15 @@
 import { Router, Request, Response } from "express";
+
 import multer from "multer";
 import path from "path";
 import crypto from "crypto";
 import fs from "fs";
 import { getDatabase } from "../../storage/database";
-import { PDFRAG } from "../../rag";
+import { DocumentLoader } from "../../lib/document-loader";
+import { createAuthMiddleware } from "../../auth/token";
 
-const router = Router();
+const router: Router = Router();
+const authMiddleware = createAuthMiddleware();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const UPLOADS_DIR = path.join(process.cwd(), "uploads", "documents", "by_hash");
@@ -16,6 +19,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 router.post(
   "/system-documents",
+  authMiddleware,
   upload.single("file"),
   async (req: Request, res: Response) => {
     try {
@@ -79,7 +83,7 @@ router.post(
       ).run(globalDocId, docType, category, file.originalname, Date.now());
 
       // 分块 + 索引到 LanceDB
-      const rag = new PDFRAG();
+      const rag = new DocumentLoader();
       await rag.loadDocumentsFromText([{ text: fileContent, metadata: { source: file.originalname, file_type: "system" } }]);
       if (rag.chunks.length > 0) {
         const { indexSystemDocumentChunks } = await import("../../lib/vector-db");
@@ -105,6 +109,7 @@ router.post(
 
 router.delete(
   "/system-documents/:id",
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id as string);
@@ -150,5 +155,64 @@ router.delete(
     }
   },
 );
+
+// 获取系统文档列表
+router.get("/system-documents", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const db = getDatabase();
+    const rows = db.prepare(`
+      SELECT s.id, s.global_doc_id, s.doc_type, s.category, s.local_name, s.created_at,
+             g.file_type, g.file_size, g.original_name
+      FROM system_documents s
+      JOIN global_documents g ON s.global_doc_id = g.id
+      ORDER BY s.created_at DESC
+    `).all() as any[];
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("Error listing system documents:", error);
+    res.status(500).json({ error: "Failed to list system documents" });
+  }
+});
+
+// 获取单个系统文档详情
+router.get("/system-documents/:id", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const db = getDatabase();
+    const id = parseInt(req.params.id as string);
+    const row = db.prepare(`
+      SELECT s.id, s.global_doc_id, s.doc_type, s.category, s.local_name, s.created_at,
+             g.file_type, g.file_size, g.original_name, g.file_path
+      FROM system_documents s
+      JOIN global_documents g ON s.global_doc_id = g.id
+      WHERE s.id = ?
+    `).get(id) as any;
+    if (!row) { res.status(404).json({ error: "System document not found" }); return; }
+    res.json({ data: row });
+  } catch (error) {
+    console.error("Error fetching system document:", error);
+    res.status(500).json({ error: "Failed to fetch system document" });
+  }
+});
+
+router.patch("/system-documents/:id", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    const { active } = req.body;
+    if (active !== 0 && active !== 1) {
+      res.status(400).json({ error: "active must be 0 or 1" });
+      return;
+    }
+    const db = getDatabase();
+    const result = db.prepare("UPDATE system_documents SET active = ? WHERE id = ?").run(active, id);
+    if (result.changes === 0) {
+      res.status(404).json({ error: "System document not found" });
+      return;
+    }
+    res.json({ data: { id, active } });
+  } catch (error) {
+    console.error("Error updating system document:", error);
+    res.status(500).json({ error: "Failed to update system document" });
+  }
+});
 
 export default router;

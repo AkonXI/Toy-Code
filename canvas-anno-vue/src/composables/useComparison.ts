@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, toRaw } from 'vue';
 import type { Shape, Point } from '../engine/types';
 import type { MatchResult } from '../matcher/types';
 
@@ -12,7 +12,7 @@ function getWorker(): Worker {
 }
 
 function shapeToPoints(shape: Shape): Point[] | null {
-  if (shape.type === 'polygon' || shape.type === 'polyline') return shape.points;
+  if (shape.type === 'polygon' || shape.type === 'polyline') return toRaw(shape).points;
   if (shape.type === 'rect') {
     const { x, y, w, h, rotation } = shape;
     const hw = w / 2,

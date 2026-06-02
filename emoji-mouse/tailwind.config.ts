@@ -1,7 +1,7 @@
-import type { Config } from "tailwindcss"
+import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  content: ["./!(node_modules)/**/*.(vue|jsx|tsx)"],
+  content: ['./!(node_modules)/**/*.(vue|jsx|tsx)'],
   theme: {
     extend: {}
   },

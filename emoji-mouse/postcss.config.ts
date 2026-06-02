@@ -1,6 +1,4 @@
-import type { ProcessOptions } from "postcss"
-
-const config: ProcessOptions = {
+const config = {
   plugins: {
     tailwindcss: {},
     autoprefixer: {}

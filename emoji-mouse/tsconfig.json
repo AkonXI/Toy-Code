@@ -4,10 +4,10 @@
   "include": [".plasmo/index.d.ts", "./**/*.ts", "./**/*.vue"],
   "compilerOptions": {
     "allowJs": true,
+    "moduleResolution": "bundler",
     "paths": {
       "~*": ["./*"]
     },
-    "types": ["vue", "@types/chrome"],
-    "baseUrl": "."
+    "types": ["vue", "@types/chrome"]
   }
 }

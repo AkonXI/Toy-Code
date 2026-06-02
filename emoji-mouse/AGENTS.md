@@ -10,16 +10,16 @@
 
 ## 技术栈
 
-| 层级      | 技术                                                |
-| --------- | --------------------------------------------------- |
-| 扩展框架  | Plasmo 0.90.3（Manifest V3）                        |
-| UI 框架   | Vue 3.5（Composition API，`<script setup lang="ts">`）|
-| UI 组件   | Ant Design Vue 4（按需引入，仅 popup/options 页面） |
-| 样式      | Tailwind CSS 3                                      |
-| 语言      | TypeScript（全部文件已类型化）                      |
-| 构建/打包 | Plasmo（基于 Parcel）                               |
-| 包管理器  | pnpm                                                |
-| 格式化    | Prettier 3 + import sort 插件                       |
+| 层级      | 技术                                                   |
+| --------- | ------------------------------------------------------ |
+| 扩展框架  | Plasmo 0.90.3（Manifest V3）                           |
+| UI 框架   | Vue 3.5（Composition API，`<script setup lang="ts">`） |
+| UI 组件   | Ant Design Vue 4（按需引入，仅 popup/options 页面）    |
+| 样式      | Tailwind CSS 3                                         |
+| 语言      | TypeScript（全部文件已类型化）                         |
+| 构建/打包 | Plasmo（基于 Parcel）                                  |
+| 包管理器  | pnpm                                                   |
+| 格式化    | Prettier 3 + import sort 插件                          |
 
 ## 命令
 

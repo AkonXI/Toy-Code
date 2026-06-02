@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="flex w-full h-full px-[20px] pb-[20px]">
     <div class="h-full w-[25%] pr-[12px]">
@@ -9,21 +10,26 @@
                 <div class="w-full text-[#fff] text-center text-[16px]">{{ i.title }}</div>
                 <div class="w-full text-[#fff] text-center text-[30px] font-bold">{{ i.num }}</div>
               </div>
-              <img class="w-full h-full" src="@/assets/bigScreen/bottom-bg.png" alt="">
+              <img class="w-full h-full" src="@/assets/bigScreen/bottom-bg.png" alt="" />
             </div>
           </div>
         </ItemWrap>
       </div>
-      <div class="w-full h-[75%] ">
-           <ItemWrap :topL="false" title="人员排行">
+      <div class="w-full h-[75%]">
+        <ItemWrap :topL="false" title="人员排行">
           <rank-list :query_fields="query_fields" />
         </ItemWrap>
       </div>
     </div>
     <div class="h-full flex-1">
       <div class="w-full h-[50%] pb-[12px]">
-          <ItemWrap :topL="false" title="部门分布情况">
-          <dept-bar :query_fields="query_fields" :id="'expertbar'" :yAxisName="'人'" ref="expertbar">
+        <ItemWrap :topL="false" title="部门分布情况">
+          <dept-bar
+            :query_fields="query_fields"
+            :id="'expertbar'"
+            :yAxisName="'人'"
+            ref="expertbar"
+          >
           </dept-bar>
         </ItemWrap>
       </div>
@@ -51,13 +57,13 @@
 </template>
 
 <script>
-import ItemWrap from '../com/ItemWrap/ItemWrap.vue';
-import RankList from './RankList.vue';
-import DeptBar from './DeptBar.vue';
-import Attr3DPie from './3DPie.vue';
-import FieldPie from './ExpertFieldPie.vue';
-import GenderPie from './GenderPie.vue';
-import { post } from '@/utils/request';
+import ItemWrap from '../com/ItemWrap/ItemWrap.vue'
+import RankList from './RankList.vue'
+import DeptBar from './DeptBar.vue'
+import Attr3DPie from './3DPie.vue'
+import FieldPie from './ExpertFieldPie.vue'
+import GenderPie from './GenderPie.vue'
+import { post } from '@/utils/request'
 
 export default {
   components: {
@@ -74,15 +80,14 @@ export default {
       default: () => {
         return {
           year: moment(new Date()).format('YYYY'),
-          sysCompanyUuid: '',
-        };
-      },
-    },
+          sysCompanyUuid: ''
+        }
+      }
+    }
   },
   data() {
     return {
-      expertNumList: [
-      ]
+      expertNumList: []
     }
   },
   mounted() {
@@ -91,19 +96,18 @@ export default {
   watch: {
     query_fields: {
       handler(val) {
-        this.initData();
+        this.initData()
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   methods: {
     async initData() {
       try {
-
         const res = await post('/tpm-bd-screen/v1/queryAllExpertInfo', {
           sysCompanyUuid: this.query_fields.sysCompanyUuid,
           isStatisticsChildNode: this.query_fields.isStatisticsChildNode,
-          "extendProps": {}
+          extendProps: {}
         })
         this.expertNumList = res?.data?.dataList.map((item, index) => {
           return {
@@ -111,11 +115,8 @@ export default {
             title: item.itemName
           }
         })
-      } catch (err) {
-
-      }
+      } catch (err) {}
     }
-
   }
 }
 </script>

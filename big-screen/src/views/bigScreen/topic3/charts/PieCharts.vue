@@ -3,8 +3,8 @@
 </template>
 
 <script>
-import echarts from '@/views/bigScreen/com/echarts'; 
-import { echartsMixin } from '../../com/echartsMixin';
+import echarts from '@/views/bigScreen/com/echarts'
+import { echartsMixin } from '../../com/echartsMixin'
 
 export default {
   name: 'PieCharts',
@@ -12,36 +12,36 @@ export default {
   props: {
     echartsData: {
       type: Array,
-      default: () => [],
+      default: () => []
     },
-    
+
     id: {
       type: String,
-      default: '',
-    },
+      default: ''
+    }
   },
   data() {
     return {
-      myEchart: null,
-    };
+      myEchart: null
+    }
   },
   methods: {
     initChart(echartsData) {
-      const chartDom = document.getElementById('PieCharts' + this.id);
-      if (!chartDom) return;
+      const chartDom = document.getElementById('PieCharts' + this.id)
+      if (!chartDom) return
 
-      this.myEchart = echarts.init(chartDom);
+      this.myEchart = echarts.init(chartDom)
 
       const option = {
-         legend: {
+        legend: {
           orient: 'vertical',
           right: 0,
           top: 'center',
           type: 'scroll',
-          pageIconColor:'#fff',
-          pageIconSize:10,
-          pageTextStyle:{
-            color: '#fff',
+          pageIconColor: '#fff',
+          pageIconSize: 10,
+          pageTextStyle: {
+            color: '#fff'
           },
 
           textStyle: {
@@ -52,37 +52,37 @@ export default {
                 color: '#ffffffde',
                 padding: [0, 0, 0, 10]
               },
-              unum:{
+              unum: {
                 fontSize: 16,
-                color: '#ffffffde',
+                color: '#ffffffde'
               },
-              unit:{
-                color: '#ffffff61',
+              unit: {
+                color: '#ffffff61'
               }
-            },
+            }
           },
           itemStyle: {
-            borderColor: 'transparent', 
-            borderWidth: 0               
+            borderColor: 'transparent',
+            borderWidth: 0
           },
           itemWidth: 10,
           itemHeight: 10,
-          itemGap:20,
+          itemGap: 20,
           formatter: (name) => {
-            let item = echartsData.find(d => d.name === name);
-            if (!item) return name;
-            let idx = echartsData.findIndex(d => d.name === name);
-            
-            return `{uname|分类${idx + 1}}{unum|${item.value}}{unit|个}`;
-          },
+            let item = echartsData.find((d) => d.name === name)
+            if (!item) return name
+            let idx = echartsData.findIndex((d) => d.name === name)
+
+            return `{uname|分类${idx + 1}}{unum|${item.value}}{unit|个}`
+          }
         },
         tooltip: {
           trigger: 'item',
-          backgroundColor:'#073371c7',
+          backgroundColor: '#073371c7',
           borderWidth: 1,
-          borderColor:'#0085ff8f',
-          textStyle:{
-              color:'#fff'
+          borderColor: '#0085ff8f',
+          textStyle: {
+            color: '#fff'
           }
         },
         series: [
@@ -94,28 +94,28 @@ export default {
             roseType: 'radius',
             animationType: 'scale', // 使用缩放动画
             animationEasing: 'elastic', // 采用弹性动画
-            label:{
-              show:false
+            label: {
+              show: false
             },
             itemStyle: {
               borderColor: 'transparent',
-              borderWidth: 0,
+              borderWidth: 0
             },
-            data: echartsData,
-          },
-        ],
-      };
+            data: echartsData
+          }
+        ]
+      }
 
-      this.myEchart.setOption(option);
+      this.myEchart.setOption(option)
       let this_ = this
-      this.myEchart.off('click');
+      this.myEchart.off('click')
       this.myEchart.on('click', function (params) {
-        let children = params.data.children;
-        if(children&&children.length>0){
-          this_.initChart(children);
+        let children = params.data.children
+        if (children && children.length > 0) {
+          this_.initChart(children)
         }
-      });
-    },
-  },
-};
+      })
+    }
+  }
+}
 </script>

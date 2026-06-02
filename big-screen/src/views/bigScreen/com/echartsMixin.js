@@ -19,6 +19,6 @@ export const echartsMixin = {
   methods: {
     resize() {
       this.myEchart?.resize()
-    },
-  },
+    }
+  }
 }

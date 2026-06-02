@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="grid size-full gap-[18px] p-[18px] grid-cols-7 grid-rows-3">
     <!-- 左上 -->
@@ -9,13 +10,21 @@
 
     <!-- 中上 -->
     <div class="row-span-1 col-span-3">
-      <ItemWrap :topL="false" title="分类统计一" :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }">
+      <ItemWrap
+        :topL="false"
+        title="分类统计一"
+        :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }"
+      >
         <centerTop :query_fields="query_fields"></centerTop>
       </ItemWrap>
     </div>
     <!-- 右上 -->
     <div class="row-span-1 col-span-2">
-      <ItemWrap :topL="false" title="分类统计二" :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }">
+      <ItemWrap
+        :topL="false"
+        title="分类统计二"
+        :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }"
+      >
         <rightTop :query_fields="query_fields"></rightTop>
       </ItemWrap>
     </div>
@@ -29,51 +38,77 @@
 
     <!-- 正中 -->
     <div class="row-span-1 col-span-3">
-      <ItemWrap :topL="false" title="分类统计三"
-        :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }">
-        <Center :query_fields="query_fields"></Center>
+      <ItemWrap
+        :topL="false"
+        title="分类统计三"
+        :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }"
+      >
+        <TopicCenter :query_fields="query_fields"></TopicCenter>
       </ItemWrap>
     </div>
 
     <!-- 正右 -->
     <div class="row-span-1 col-span-2">
-      <ItemWrap :topL="false" title="分类统计四" :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }">
+      <ItemWrap
+        :topL="false"
+        title="分类统计四"
+        :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }"
+      >
         <rightMiddle :query_fields="query_fields"></rightMiddle>
       </ItemWrap>
     </div>
 
     <!-- 正下 -->
     <div class="row-span-1 col-span-3">
-      <ItemWrap :topL="false" title="分类统计五" :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }">
+      <ItemWrap
+        :topL="false"
+        title="分类统计五"
+        :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }"
+      >
         <centerBottom :query_fields="query_fields"></centerBottom>
       </ItemWrap>
     </div>
 
     <!-- 右下 -->
     <div class="row-span-1 col-span-2">
-      <ItemWrap :topL="false" title="分类统计六" :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }">
+      <ItemWrap
+        :topL="false"
+        title="分类统计六"
+        :itemStyle="{ background: `url(${backgroundImage_bg}) no-repeat` }"
+      >
         <rightBottom :query_fields="query_fields"></rightBottom>
       </ItemWrap>
     </div>
   </div>
 </template>
 <script>
-import moment from 'moment';
-import ItemWrap from '../com/ItemWrap/ItemWrap.vue';
-import backgroundImage_bg from '@/assets/bigScreen/box-title-bg.svg';
-import leftTop from './leftTop.vue';
-import rightTop from './rightTop.vue';
-import rightMiddle from './rightMiddle.vue';
+/* eslint-disable vue/multi-word-component-names */
+import moment from 'moment'
+import ItemWrap from '../com/ItemWrap/ItemWrap.vue'
+import backgroundImage_bg from '@/assets/bigScreen/box-title-bg.svg'
+import leftTop from './leftTop.vue'
+import rightTop from './rightTop.vue'
+import rightMiddle from './rightMiddle.vue'
 
-import rightBottom from './rightBottom.vue';
-import leftBottom from './leftBottom.vue';
+import rightBottom from './rightBottom.vue'
+import leftBottom from './leftBottom.vue'
 
-import Center from './center.vue';
-import centerTop from './centerTop.vue';
-import centerBottom from './centerBottom.vue';
+import TopicCenter from './center.vue'
+import centerTop from './centerTop.vue'
+import centerBottom from './centerBottom.vue'
 
 export default {
-  components: { Center, centerBottom, centerTop, rightMiddle, leftTop, ItemWrap, rightTop, rightBottom, leftBottom },
+  components: {
+    TopicCenter,
+    centerBottom,
+    centerTop,
+    rightMiddle,
+    leftTop,
+    ItemWrap,
+    rightTop,
+    rightBottom,
+    leftBottom
+  },
 
   props: {
     query_fields: {
@@ -81,21 +116,21 @@ export default {
       default: () => {
         return {
           year: moment(new Date()).format('YYYY'),
-          sysCompanyUuid: '',
-        };
-      },
-    },
+          sysCompanyUuid: ''
+        }
+      }
+    }
   },
   data() {
     return {
-      backgroundImage_bg,
-    };
+      backgroundImage_bg
+    }
   },
   mounted() {
-    console.log(this.query_fields, 'risk');
+    console.log(this.query_fields, 'risk')
   },
-  methods: {},
-};
+  methods: {}
+}
 </script>
 <style scoped lang="less">
 .risk-con {

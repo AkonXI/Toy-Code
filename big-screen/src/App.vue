@@ -6,7 +6,7 @@
 import bigScreen from '@/views/bigScreen/index.vue'
 
 export default {
-  components: { bigScreen },
+  components: { bigScreen }
 }
 </script>
 
@@ -16,7 +16,9 @@ export default {
   padding: 0;
   box-sizing: border-box;
 }
-html, body, #app {
+html,
+body,
+#app {
   width: 100%;
   height: 100%;
   overflow: hidden;

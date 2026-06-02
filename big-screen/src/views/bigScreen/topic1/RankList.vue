@@ -1,18 +1,24 @@
 <template>
   <div class="bottom-list">
     <div class="no-data" v-if="list.length === 0">
-      <img src="@/assets/bigScreen/no-data.png" alt="">
+      <img src="@/assets/bigScreen/no-data.png" alt="" />
       <p>暂无数据</p>
     </div>
-    <vue-seamless-scroll @ScrollEnd="scrollEnd" v-else :data="list" :key="rdmk" :class-option="classOption"
-      class="wrap">
+    <vue-seamless-scroll
+      @ScrollEnd="scrollEnd"
+      v-else
+      :data="list"
+      :key="rdmk"
+      :class-option="classOption"
+      class="wrap"
+    >
       <ul>
         <li class="item-list" v-for="(item, index) in list" :key="index">
           <div class="left-d">
             <div class="item-icon" :class="'item-' + index">{{ index + 1 }}</div>
             <div class="item-title basis-[30%] font-fff">{{ item.itemName }}</div>
           </div>
-          <div class="basis-[30%]">{{ item.orgName }} </div>
+          <div class="basis-[30%]">{{ item.orgName }}</div>
           <div class="item-num font-fff">{{ Math.floor(Math.random() * 500) + 50 }}次</div>
         </li>
       </ul>
@@ -20,11 +26,11 @@
   </div>
 </template>
 <script>
-import { post } from '@/utils/request';
-import vueSeamlessScroll from 'vue-seamless-scroll';
+import { post } from '@/utils/request'
+import vueSeamlessScroll from 'vue-seamless-scroll'
 export default {
   components: {
-    vueSeamlessScroll,
+    vueSeamlessScroll
   },
 
   data() {
@@ -32,8 +38,8 @@ export default {
       rdmk: Math.random(),
       classOption: { limitMoveNum: 999, autoPlay: false },
       list: [],
-      statisticsTimeRange: 'year',
-    };
+      statisticsTimeRange: 'year'
+    }
   },
   props: {
     query_fields: {
@@ -41,65 +47,69 @@ export default {
       default: () => {
         return {
           year: moment(new Date()).format('YYYY'),
-          sysCompanyUuid: '',
-        };
-      },
-    },
+          sysCompanyUuid: ''
+        }
+      }
+    }
   },
   watch: {
     query_fields: {
       handler(val) {
-        this.initData();
+        this.initData()
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
   methods: {
     calcLimit() {
-      const wrap = this.$el?.querySelector?.('.wrap');
+      const wrap = this.$el?.querySelector?.('.wrap')
       if (wrap) {
-        const itemHeight = 37;
-        this.classOption.limitMoveNum = Math.floor(wrap.clientHeight / itemHeight);
+        const itemHeight = 37
+        this.classOption.limitMoveNum = Math.floor(wrap.clientHeight / itemHeight)
       }
     },
     scrollEnd() {
       this.classOption.autoPlay = false
-      setTimeout(() => { this.rdmk = Math.random(); this.classOption.autoPlay = true; }, 3000)
+      setTimeout(() => {
+        this.rdmk = Math.random()
+        this.classOption.autoPlay = true
+      }, 3000)
     },
     initData() {
       this.classOption.autoPlay = false
       this.rdmk = Math.random()
       post('/tpm-bd-screen/v1/queryExpertRankingInfo', {
-        "extendProps": {},
+        extendProps: {},
         sysCompanyUuid: this.query_fields.sysCompanyUuid,
-        isStatisticsChildNode: this.query_fields.isStatisticsChildNode,
-      }).then(res => {
-        if (res?.data) {
-          this.list = res.data?.dataList?.map((item, index) => {
-            return {
-              ...item,
-              name: item.itemName,
-              itemName: item.itemName,
-              orgName: item.orgName
-            }
-          })
-          this.$nextTick(() => {
-            this.calcLimit()
-            this.classOption.autoPlay = this.list.length > this.classOption.limitMoveNum
-          })
-        } else {
-          this.list = []
-        }
+        isStatisticsChildNode: this.query_fields.isStatisticsChildNode
       })
-        .catch(err => {
+        .then((res) => {
+          if (res?.data) {
+            this.list = res.data?.dataList?.map((item, index) => {
+              return {
+                ...item,
+                name: item.itemName,
+                itemName: item.itemName,
+                orgName: item.orgName
+              }
+            })
+            this.$nextTick(() => {
+              this.calcLimit()
+              this.classOption.autoPlay = this.list.length > this.classOption.limitMoveNum
+            })
+          } else {
+            this.list = []
+          }
+        })
+        .catch((err) => {
           console.log(err, '获取数据失败')
         })
-    },
-  },
-};
+    }
+  }
+}
 </script>
 <style scoped lang="less">
 .bottom-list {

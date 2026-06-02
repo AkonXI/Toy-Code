@@ -7,31 +7,42 @@
           <a-radio-button value="2">季度</a-radio-button>
           <a-radio-button value="3">月</a-radio-button>
         </a-radio-group>
-        <a-select :dropdownMenuStyle="{ fontSize: '12px', width: '120px' }" @change="typeRadioChange"
-          v-model="selectData">
+        <a-select
+          :dropdownMenuStyle="{ fontSize: '12px', width: '120px' }"
+          @change="typeRadioChange"
+          v-model="selectData"
+        >
           <a-select-option value="1">指标一</a-select-option>
           <a-select-option value="2">指标二</a-select-option>
-
         </a-select>
       </a-space>
     </div>
     <div class="bar-container py-4">
-      <bar-charts splitLineType="dashed" class="flex-1" :legend="false"
-        :tooltipFormatter="({ name, value }) => `样本数据：${value[1]}${selectData == 1 ? '万元' : '个'}`" :source="source"
-        :series="series" :id="'centerTop'" :yAxisName="selectData == 1 ? '万元' : '个'" ref="barChart"></bar-charts>
+      <bar-charts
+        splitLineType="dashed"
+        class="flex-1"
+        :legend="false"
+        :tooltipFormatter="
+          ({ name, value }) => `样本数据：${value[1]}${selectData == 1 ? '万元' : '个'}`
+        "
+        :source="source"
+        :series="series"
+        :id="'centerTop'"
+        :yAxisName="selectData == 1 ? '万元' : '个'"
+        ref="barChart"
+      ></bar-charts>
     </div>
   </div>
 </template>
 
-
 <script>
-import moment from 'moment';
-import BarCharts from '../com/BarCharts.vue';
-import { post } from '@/utils/request';
-import * as echarts from 'echarts';
+import moment from 'moment'
+import BarCharts from '../com/BarCharts.vue'
+import { post } from '@/utils/request'
+import * as echarts from 'echarts'
 export default {
   components: {
-    BarCharts,
+    BarCharts
   },
   props: {
     query_fields: {
@@ -39,10 +50,10 @@ export default {
       default: () => {
         return {
           year: moment(new Date()).format('YYYY'),
-          sysCompanyUuid: '',
-        };
-      },
-    },
+          sysCompanyUuid: ''
+        }
+      }
+    }
   },
   data() {
     return {
@@ -53,30 +64,27 @@ export default {
       selectData: '1',
       legend_data: [],
       series: [],
-      source: [],
-    };
+      source: []
+    }
   },
   watch: {
     query_fields: {
       handler(val) {
-        this.initData();
+        this.initData()
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
-  mounted() { },
+  mounted() {},
   methods: {
     typeRadioChange(e) {
-      this.initData();
+      this.initData()
       this.$refs.barChart.resize()
     },
     async initData() {
-
-
-
       let colors = [
         {
           type: 'linear',
@@ -87,28 +95,27 @@ export default {
           colorStops: [
             { offset: 0, color: '#00D0DD' },
             { offset: 0.88, color: '#00c2ff33' },
-            { offset: 1, color: '#00c2ff33' },
-          ],
-        },
-      ];
+            { offset: 1, color: '#00c2ff33' }
+          ]
+        }
+      ]
 
-      this.series = [];
+      this.series = []
       try {
         const res = await post('/tpm-bd-screen/v1/queryInfoMiddleUp', {
-          "dimension": this.selectData,
-          "extendProps": {},
+          dimension: this.selectData,
+          extendProps: {},
           timeType: this.typeRadio,
           sysCompanyUuid: this.query_fields.sysCompanyUuid,
-          isStatisticsChildNode: this.query_fields.isStatisticsChildNode,
+          isStatisticsChildNode: this.query_fields.isStatisticsChildNode
         })
 
         if (res?.data?.dataList?.length > 0) {
           this.source = res.data.dataList.map((item, index) => {
             return [item.itemName, item.itemNum]
-          });
-
+          })
         } else {
-          this.source = [];
+          this.source = []
         }
       } catch (err) {
         this.source = []
@@ -128,22 +135,21 @@ export default {
                 offset: 1,
                 color: 'rgba(77, 119, 255 ,100%)'
               }
-
             ])
           },
           barWidth: '16px',
           itemStyle: {
-            borderRadius: [15, 15, 0, 0],
-          },
-        });
+            borderRadius: [15, 15, 0, 0]
+          }
+        })
       }
 
       this.$nextTick(() => {
-        this.$refs.barChart.initChart();
-      });
-    },
-  },
-};
+        this.$refs.barChart.initChart()
+      })
+    }
+  }
+}
 </script>
 
 <style lang="less" scoped>

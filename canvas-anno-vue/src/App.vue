@@ -2,12 +2,7 @@
   <div>
     <div class="flex items-center gap-2 max-w-[1160px] mx-auto px-5 pt-5">
       <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
-        <input
-          type="checkbox"
-          :checked="readonly"
-          @change="readonly = !readonly"
-          class="w-4 h-4"
-        />
+        <input type="checkbox" :checked="readonly" @change="readonly = !readonly" class="w-4 h-4" />
         只读模式
       </label>
       <span class="text-xs text-gray-400">
@@ -15,14 +10,10 @@
       </span>
     </div>
 
-    <div style="position: relative;">
+    <div style="position: relative">
       <CanvasAnnotator ref="annotatorRef" :readonly="readonly" @change="onAnnotatorChange">
         <template #canvas-overlay>
-          <ComparisonOverlay
-            v-if="result"
-            :result="result"
-            :get-meta="getCurrentMeta"
-          />
+          <ComparisonOverlay v-if="result" :result="result" :get-meta="getCurrentMeta" />
         </template>
       </CanvasAnnotator>
 
@@ -59,8 +50,9 @@ const { templateIdx, testIdx, result, loading, compare, clear } = useComparison(
 let recompareTimer: ReturnType<typeof setTimeout> | null = null
 
 function getCurrentMeta(): Meta {
-  return annotatorRef.value?.getMeta()
-    ?? { scale: 1, translateX: 0, translateY: 0, mode: '', group: '' }
+  return (
+    annotatorRef.value?.getMeta() ?? { scale: 1, translateX: 0, translateY: 0, mode: '', group: '' }
+  )
 }
 
 function onAnnotatorChange(s: Shape[], m: Meta) {

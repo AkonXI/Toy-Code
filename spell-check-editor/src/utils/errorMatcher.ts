@@ -34,7 +34,7 @@ export function findErrors(plainText: string, errorDict: ErrorDict): FindErrorRe
     }
   }
 
-  errors.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start))
+  errors.sort((a, b) => a.start - b.start || b.end - b.start - (a.end - a.start))
   const deduped: FindErrorResult[] = []
   for (const err of errors) {
     if (deduped.length === 0 || err.start >= deduped[deduped.length - 1].end) {
@@ -63,16 +63,21 @@ export function buildCharacterMapping(rootNode: Node): string {
   }
 
   traverse(rootNode)
-  return mapping.map(m => m.char).join('')
+  return mapping.map((m) => m.char).join('')
 }
 
 /** 将高亮错误文本替换为建议文本 */
-export function replaceErrorText(rootNode: Node, clickedElement: HTMLElement, newText: string, _highlightClass: string) {
+export function replaceErrorText(
+  rootNode: Node,
+  clickedElement: HTMLElement,
+  newText: string,
+  _highlightClass: string
+) {
   const errorId = clickedElement.dataset.errorId
   if (errorId) {
     const rootEl = rootNode as Element
     const spans = rootEl.querySelectorAll(`[data-error-id="${errorId}"]`)
-    let remaining = [...newText]
+    const remaining = [...newText]
     spans.forEach((span: Element, i: number) => {
       const p = span.parentNode as Element | null
       if (!p) return
@@ -135,7 +140,7 @@ function mergeAdjacentTextNodes(element: Node) {
       i--
     }
   }
-  childNodes.forEach(child => {
+  childNodes.forEach((child) => {
     if (child.nodeType === Node.ELEMENT_NODE) {
       mergeAdjacentTextNodes(child)
     }

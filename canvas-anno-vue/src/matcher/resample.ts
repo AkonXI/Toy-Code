@@ -48,7 +48,7 @@ export function resample(points: Point[], spacing: number, closed = false): Poin
     const t = Math.min(1, Math.max(0, (d - cumDist[segIdx]) / segLen))
     result.push({
       x: segStart[segIdx].x + t * (segEnd[segIdx].x - segStart[segIdx].x),
-      y: segStart[segIdx].y + t * (segEnd[segIdx].y - segStart[segIdx].y),
+      y: segStart[segIdx].y + t * (segEnd[segIdx].y - segStart[segIdx].y)
     })
   }
 

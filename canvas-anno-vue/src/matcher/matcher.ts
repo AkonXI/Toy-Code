@@ -8,7 +8,7 @@ import { dist2 } from './geometry'
 export function matchTrajectory(
   curveA: Point[],
   curveB: Point[],
-  options: MatcherOptions = {},
+  options: MatcherOptions = {}
 ): MatchResult {
   const spacing = options.spacing ?? 2
   const delta = options.delta ?? 3
@@ -38,9 +38,9 @@ export function matchTrajectory(
       const d2 = dist2(bp, ap)
       if (d2 < minD2) minD2 = d2
     }
-    if (minD2 <= eMax2) compliantCount++  // 该点落在 A 的 E_max 管状邻域内
+    if (minD2 <= eMax2) compliantCount++ // 该点落在 A 的 E_max 管状邻域内
     const actual = Math.sqrt(minD2)
-    if (actual > maxError) maxError = actual   // h(B,A) = 所有最近距离中的最大值
+    if (actual > maxError) maxError = actual // h(B,A) = 所有最近距离中的最大值
     if (actual > eMax) violations.push({ x: bp.x, y: bp.y })
   }
   const similarity = compliantCount / rB.length
@@ -72,6 +72,6 @@ export function matchTrajectory(
     obb,
     // PASS 条件：无违规点 且 相似度 ≥ 90%
     maxErrorPass: violations.length === 0,
-    similarityPass: similarity >= 0.9,
+    similarityPass: similarity >= 0.9
   }
 }

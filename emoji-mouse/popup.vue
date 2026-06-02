@@ -1,6 +1,6 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
-  <div
-    class="w-[300px] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] text-white select-none">
+  <div class="w-[300px] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] text-white select-none">
     <div class="flex items-center gap-3 p-5 pb-3">
       <div class="text-3xl">🖱️</div>
       <div>
@@ -18,14 +18,12 @@
           <div
             class="w-2.5 h-2.5 rounded-full transition-colors duration-300"
             :class="
-              status
-                ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                : 'bg-white/20'
+              status ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-white/20'
             " />
           <div>
             <div class="text-sm font-medium">当前页面</div>
             <div class="text-xs text-white/30 mt-0.5">
-              {{ status ? "已开启" : "已关闭" }}
+              {{ status ? '已开启' : '已关闭' }}
             </div>
           </div>
         </div>
@@ -45,10 +43,10 @@
   <iframe src="sandbox.html" ref="iframeRef" class="hidden" />
 </template>
 <script setup lang="ts">
-import { CheckOutlined, CloseOutlined } from "@ant-design/icons-vue"
-import Switch from "ant-design-vue/es/switch"
-import type { App } from "vue"
-import { onMounted, onUnmounted, ref } from "vue"
+import { CheckOutlined, CloseOutlined } from '@ant-design/icons-vue'
+import Switch from 'ant-design-vue/es/switch'
+import type { App } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const status = ref(true)
 
@@ -62,12 +60,12 @@ const changeSatus = (v: boolean) => {
     const tabId = tabs[0].id
     if (tabId === undefined) return
     chrome.tabs.sendMessage(tabId, {
-      type: "change-current-status",
+      type: 'change-current-status',
       data: { currentPageStatus: v, id: tabId }
     })
     chrome.runtime.sendMessage(
       {
-        type: "change-current-status",
+        type: 'change-current-status',
         data: { currentPageStatus: v, id: tabId }
       },
       () => {
@@ -79,23 +77,23 @@ const changeSatus = (v: boolean) => {
 }
 
 const handleMessage = (event: MessageEvent) => {
-  console.log("EVAL output: " + event.data)
+  console.log('EVAL output: ' + event.data)
 }
 
 onMounted(() => {
-  window.addEventListener("message", handleMessage)
-  chrome.runtime.sendMessage({ type: "get-current-status" }, (response: unknown) => {
+  window.addEventListener('message', handleMessage)
+  chrome.runtime.sendMessage({ type: 'get-current-status' }, (response: unknown) => {
     if (chrome.runtime.lastError) return
     status.value = response as boolean
   })
 })
 
 onUnmounted(() => {
-  window.removeEventListener("message", handleMessage)
+  window.removeEventListener('message', handleMessage)
 })
 </script>
 <style>
-@import "./style.css";
+@import './style.css';
 
 .anticon {
   vertical-align: middle !important;

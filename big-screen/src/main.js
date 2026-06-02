@@ -10,18 +10,18 @@ const store = Vue.observable({
   state: {
     user: {
       userInfo: {
-        companyuuid: '',
-      },
-    },
-  },
+        companyuuid: ''
+      }
+    }
+  }
 })
 
 store.getters = {
-  companyuuid: () => store.state.user.userInfo.companyuuid,
+  companyuuid: () => store.state.user.userInfo.companyuuid
 }
 
 Vue.prototype.$store = store
 
 new Vue({
-  render: h => h(App),
+  render: (h) => h(App)
 }).$mount('#app')

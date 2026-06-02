@@ -43,7 +43,7 @@ function findErrors(plainText: string, errorDict: ErrorDict): FindErrorResult[] 
       }
     }
   }
-  errors.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start))
+  errors.sort((a, b) => a.start - b.start || b.end - b.start - (a.end - a.start))
   const deduped: FindErrorResult[] = []
   for (const err of errors) {
     if (deduped.length === 0 || err.start >= deduped[deduped.length - 1].end) {
@@ -60,7 +60,7 @@ function highlightInNode(
   end: number,
   suggestions: string[],
   errorId: string,
-  highlightClass: string,
+  highlightClass: string
 ) {
   const parent = textNode.parentNode
   if (!parent) return
@@ -79,7 +79,8 @@ function highlightInNode(
   span.textContent = errorText
   span.dataset.suggestions = JSON.stringify(suggestions)
   span.dataset.errorId = errorId
-  span.style.cssText = 'background-color:rgba(255,0,0,0.2);border-bottom:2px dashed #f00;cursor:pointer;'
+  span.style.cssText =
+    'background-color:rgba(255,0,0,0.2);border-bottom:2px dashed #f00;cursor:pointer;'
 
   fragment.appendChild(span)
   if (after) fragment.appendChild(document.createTextNode(after))
@@ -90,7 +91,7 @@ function highlightInNode(
 export default function spellCheck(
   rootNode: Node,
   errorDict: ErrorDict,
-  highlightClass: string,
+  highlightClass: string
 ): ErrorTrayItem[] {
   const textNodes = collectTextNodes(rootNode)
   const plainText = textNodes.map((n) => n.textContent || '').join('')

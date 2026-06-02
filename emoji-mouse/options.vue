@@ -1,11 +1,8 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="w-[1200px] mx-auto">
     <div class="font-medium text-[22px] py-8">设置</div>
-    <Form
-      ref="FormRef"
-      :labelCol="{ span: 2 }"
-      :wrapperCol="{ span: 22 }"
-      :model="FormData">
+    <Form ref="FormRef" :labelCol="{ span: 2 }" :wrapperCol="{ span: 22 }" :model="FormData">
       <Row>
         <Col :span="24">
           <FormItem label="开启状态" name="status">
@@ -39,22 +36,12 @@
           </FormItem>
         </Col>
         <Col :span="12">
-          <FormItem
-            :labelCol="{ span: 4 }"
-            :wrapperCol="{ span: 16 }"
-            label="存在时长"
-            name="stay">
-            <input-number
-              addon-after="ms"
-              :min="500"
-              v-model:value="FormData.stay"></input-number>
+          <FormItem :labelCol="{ span: 4 }" :wrapperCol="{ span: 16 }" label="存在时长" name="stay">
+            <input-number addon-after="ms" :min="500" v-model:value="FormData.stay"></input-number>
           </FormItem>
         </Col>
         <Col :span="12">
-          <FormItem
-            :labelCol="{ span: 4 }"
-            :wrapperCol="{ span: 16 }"
-            label="表情直径">
+          <FormItem :labelCol="{ span: 4 }" :wrapperCol="{ span: 16 }" label="表情直径">
             <FormItemRest>
               <div class="flex items-center">
                 最小 &nbsp;
@@ -74,10 +61,7 @@
           </FormItem>
         </Col>
         <Col :span="12">
-          <FormItem
-            label="透明度"
-            :labelCol="{ span: 4 }"
-            :wrapperCol="{ span: 16 }">
+          <FormItem label="透明度" :labelCol="{ span: 4 }" :wrapperCol="{ span: 16 }">
             <input-number
               :min="0"
               :max="1"
@@ -92,9 +76,7 @@
               <div>操作</div>
             </template>
             <Button type="primary" @click="saveConfig"> 保存 </Button>
-            &emsp;<Button @click="resetConfig" type="primary" danger>
-              重置</Button
-            >
+            &emsp;<Button @click="resetConfig" type="primary" danger> 重置</Button>
           </FormItem>
         </Col>
       </Row>
@@ -103,45 +85,39 @@
 </template>
 
 <script setup lang="ts">
-import type { EmojiOptions } from "~initOption"
-import Button from "ant-design-vue/es/button"
-import Col from "ant-design-vue/es/col"
-import Form, { FormItem, FormItemRest } from "ant-design-vue/es/form"
-import InputNumber from "ant-design-vue/es/input-number"
-import message from "ant-design-vue/es/message"
-import Radio, { RadioGroup } from "ant-design-vue/es/radio"
-import Row from "ant-design-vue/es/row"
-import Select from "ant-design-vue/es/select"
-import { onMounted, ref } from "vue"
+import Button from 'ant-design-vue/es/button'
+import Col from 'ant-design-vue/es/col'
+import Form, { FormItem, FormItemRest } from 'ant-design-vue/es/form'
+import InputNumber from 'ant-design-vue/es/input-number'
+import message from 'ant-design-vue/es/message'
+import Radio, { RadioGroup } from 'ant-design-vue/es/radio'
+import Row from 'ant-design-vue/es/row'
+import Select from 'ant-design-vue/es/select'
+import { onMounted, ref } from 'vue'
 
-import initOption from "~initOption"
+import type { EmojiOptions } from '~initOption'
+import initOption from '~initOption'
 
 const FormData = ref<EmojiOptions>({ ...initOption })
 const options = ref<{ label: string; value: string }[]>([])
 
 const saveConfig = () => {
-  chrome.runtime.sendMessage(
-    { type: "update-option", data: FormData.value },
-    () => {
-      if (chrome.runtime.lastError) return
-      message.success("保存成功")
-    }
-  )
+  chrome.runtime.sendMessage({ type: 'update-option', data: FormData.value }, () => {
+    if (chrome.runtime.lastError) return
+    message.success('保存成功')
+  })
 }
 
 const resetConfig = () => {
   const defaults = { ...initOption }
-  chrome.runtime.sendMessage(
-    { type: "update-option", data: defaults },
-    () => {
-      if (chrome.runtime.lastError) return
-      FormData.value = defaults
-      message.success("重置成功")
-    }
-  )
+  chrome.runtime.sendMessage({ type: 'update-option', data: defaults }, () => {
+    if (chrome.runtime.lastError) return
+    FormData.value = defaults
+    message.success('重置成功')
+  })
 }
 onMounted(() => {
-  chrome.runtime.sendMessage({ type: "get-options" }, (v) => {
+  chrome.runtime.sendMessage({ type: 'get-options' }, (v) => {
     if (chrome.runtime.lastError) return
     FormData.value = { ...initOption, ...v }
   })
@@ -155,7 +131,7 @@ defineOptions({
 </script>
 
 <style>
-@import "style.css";
+@import 'style.css';
 
 .anticon {
   vertical-align: middle !important;

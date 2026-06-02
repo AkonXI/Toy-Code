@@ -7,7 +7,7 @@
       </a-radio-group>
     </div>
     <div class="no-data" v-if="list.length === 0">
-      <img src="@/assets/bigScreen/no-data.png" alt="">
+      <img src="@/assets/bigScreen/no-data.png" alt="" />
       <p>暂无数据</p>
     </div>
     <vue-seamless-scroll v-else :data="list" :key="rdmk" :class-option="classOption" class="wrap">
@@ -21,8 +21,13 @@
           <div class="item-rate">
             <span font-fff>同比</span>
             <span>
-              <img v-if="item.trend === 'up'" style="width: 12px;" src="@/assets/bigScreen/up.png" alt="">
-              <img v-else style="width: 12px;" src="@/assets/bigScreen/down.png" alt="">
+              <img
+                v-if="item.trend === 'up'"
+                style="width: 12px"
+                src="@/assets/bigScreen/up.png"
+                alt=""
+              />
+              <img v-else style="width: 12px" src="@/assets/bigScreen/down.png" alt="" />
             </span>
             <span :class="item.trend">{{ item.rate }}</span>
           </div>
@@ -32,11 +37,11 @@
   </div>
 </template>
 <script>
-import { post } from '@/utils/request';
-import vueSeamlessScroll from 'vue-seamless-scroll';
+import { post } from '@/utils/request'
+import vueSeamlessScroll from 'vue-seamless-scroll'
 export default {
   components: {
-    vueSeamlessScroll,
+    vueSeamlessScroll
   },
 
   data() {
@@ -44,51 +49,52 @@ export default {
       rdmk: Math.random(),
       classOption: { limitMoveNum: 999, autoPlay: false },
       list: [],
-      statisticsTimeRange: 'year',
-    };
+      statisticsTimeRange: 'year'
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
   methods: {
     calcLimit() {
-      const wrap = this.$el?.querySelector?.('.wrap');
+      const wrap = this.$el?.querySelector?.('.wrap')
       if (wrap) {
-        const itemHeight = 37;
-        this.classOption.limitMoveNum = Math.floor(wrap.clientHeight / itemHeight);
+        const itemHeight = 37
+        this.classOption.limitMoveNum = Math.floor(wrap.clientHeight / itemHeight)
       }
     },
     comChange(e) {
-      this.statisticsTimeRange = e.target.value;
-      this.initData();
+      this.statisticsTimeRange = e.target.value
+      this.initData()
     },
     initData() {
       this.classOption.autoPlay = false
       post('/tpm-warn-record/v1/statisticsRecordGroupByCompany', {
         statisticsTimeRange: this.statisticsTimeRange
-      }).then(res => {
-        if (res?.data?.length > 0) {
-          this.list = res.data.map((item, index) => {
-            return {
-              ...item,
-              name: item.name,
-              title: item.title
-            }
-          })
-          this.$nextTick(() => {
-            this.calcLimit()
-            this.classOption.autoPlay = this.list.length > this.classOption.limitMoveNum
-          })
-        } else {
-          this.list = []
-        }
       })
-        .catch(err => {
+        .then((res) => {
+          if (res?.data?.length > 0) {
+            this.list = res.data.map((item, index) => {
+              return {
+                ...item,
+                name: item.name,
+                title: item.title
+              }
+            })
+            this.$nextTick(() => {
+              this.calcLimit()
+              this.classOption.autoPlay = this.list.length > this.classOption.limitMoveNum
+            })
+          } else {
+            this.list = []
+          }
+        })
+        .catch((err) => {
           console.log(err, '获取数据失败')
         })
-    },
-  },
-};
+    }
+  }
+}
 </script>
 <style scoped lang="less">
 .bottom-list {
@@ -216,7 +222,8 @@ export default {
     }
 
     .down {
-      color: rgb(15, 221, 18);    }
+      color: rgb(15, 221, 18);
+    }
   }
 }
 </style>

@@ -1,4 +1,4 @@
-import * as echarts from 'echarts/core';
+import * as echarts from 'echarts/core'
 
 // 引入你需要的 ECharts 模块
 import {
@@ -8,19 +8,11 @@ import {
   LegendComponent,
   ToolboxComponent,
   DatasetComponent,
-  GraphicComponent,
-} from 'echarts/components';
+  GraphicComponent
+} from 'echarts/components'
 
-import {
-  LineChart,
-  BarChart,
-  PieChart,
-  CustomChart,
-  GaugeChart
-} from 'echarts/charts';
-import {
-  CanvasRenderer
-} from 'echarts/renderers';
+import { LineChart, BarChart, PieChart, CustomChart, GaugeChart } from 'echarts/charts'
+import { CanvasRenderer } from 'echarts/renderers'
 
 // 使用引入的模块
 echarts.use([
@@ -36,7 +28,7 @@ echarts.use([
   CanvasRenderer,
   CustomChart,
   GraphicComponent,
-  GaugeChart,
-]);
+  GaugeChart
+])
 
-export default echarts;
+export default echarts

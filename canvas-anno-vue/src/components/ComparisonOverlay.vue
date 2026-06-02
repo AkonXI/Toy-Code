@@ -62,7 +62,7 @@ function drawCurveB(ctx: CanvasRenderingContext2D) {
   const { resampledB, violations } = props.result
   if (resampledB.length < 2) return
 
-  const violationSet = new Set(violations.map(v => `${v.x.toFixed(4)},${v.y.toFixed(4)}`))
+  const violationSet = new Set(violations.map((v) => `${v.x.toFixed(4)},${v.y.toFixed(4)}`))
   const key = (p: Point) => `${p.x.toFixed(4)},${p.y.toFixed(4)}`
 
   // 合规段 — 淡色
@@ -80,10 +80,18 @@ function drawCurveB(ctx: CanvasRenderingContext2D) {
     const cy = toCanvasY(resampledB[i].y)
 
     if (isV) {
-      if (penDown) { ctx.stroke(); ctx.beginPath(); penDown = false }
+      if (penDown) {
+        ctx.stroke()
+        ctx.beginPath()
+        penDown = false
+      }
     } else {
-      if (!penDown) { ctx.moveTo(cx, cy); penDown = true }
-      else { ctx.lineTo(cx, cy) }
+      if (!penDown) {
+        ctx.moveTo(cx, cy)
+        penDown = true
+      } else {
+        ctx.lineTo(cx, cy)
+      }
     }
   }
   if (penDown) ctx.stroke()
@@ -104,10 +112,18 @@ function drawCurveB(ctx: CanvasRenderingContext2D) {
     const cy = toCanvasY(resampledB[i].y)
 
     if (isV) {
-      if (!penDown) { ctx.moveTo(cx, cy); penDown = true }
-      else { ctx.lineTo(cx, cy) }
+      if (!penDown) {
+        ctx.moveTo(cx, cy)
+        penDown = true
+      } else {
+        ctx.lineTo(cx, cy)
+      }
     } else {
-      if (penDown) { ctx.stroke(); ctx.beginPath(); penDown = false }
+      if (penDown) {
+        ctx.stroke()
+        ctx.beginPath()
+        penDown = false
+      }
     }
   }
   if (penDown) ctx.stroke()
@@ -138,13 +154,19 @@ function startLoop() {
 }
 
 function stopLoop() {
-  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null }
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
 }
 
-watch(() => props.result, (v) => {
-  stopLoop()
-  if (v) nextTick(startLoop)
-})
+watch(
+  () => props.result,
+  (v) => {
+    stopLoop()
+    if (v) nextTick(startLoop)
+  }
+)
 
 onMounted(() => {
   if (props.result) startLoop()

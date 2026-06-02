@@ -1,27 +1,29 @@
-<template></template>
+<template>
+  <div></div>
+</template>
 <script setup lang="ts">
-import type { EmojiOptions } from "~initOption"
-import throttle from "lodash-es/throttle"
-import { computed, onMounted, onUnmounted, ref, watch } from "vue"
+import throttle from 'lodash-es/throttle'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
-import initOption from "~initOption"
+import type { EmojiOptions } from '~initOption'
+import initOption from '~initOption'
 
 const DEFAULT_EMOJIS = [
-  "😀",
-  "😍",
-  "😝",
-  "😪",
-  "🍇",
-  "🍉",
-  "🥒",
-  "🥦",
-  "🍞",
-  "🍔",
-  "🍟",
-  "🦞",
-  "🍦",
-  "🧃",
-  "🍹"
+  '😀',
+  '😍',
+  '😝',
+  '😪',
+  '🍇',
+  '🍉',
+  '🥒',
+  '🥦',
+  '🍞',
+  '🍔',
+  '🍟',
+  '🦞',
+  '🍦',
+  '🧃',
+  '🍹'
 ]
 
 const waterDrifts: number[] = [-20, -8, 0, 8, 20]
@@ -49,7 +51,7 @@ for (let i = 0; i < balloonDirs.length; i++) animNames.push(`b${i}`)
 for (let i = 0; i < sparkDirs.length; i++) animNames.push(`s${i}`)
 
 const generateStyles = (op: number): string => {
-  let css = ""
+  let css = ''
 
   waterDrifts.forEach((drift: number, i: number) => {
     css += `@keyframes w${i}{`
@@ -82,7 +84,7 @@ const generateStyles = (op: number): string => {
   return css
 }
 
-const styleEl = document.createElement("style")
+const styleEl = document.createElement('style')
 styleEl.textContent = generateStyles(initOption.opacity)
 document.head.appendChild(styleEl)
 
@@ -94,46 +96,44 @@ const images = computed((): string[] => {
 })
 
 const compStay = computed((): string => {
-  return options.value.stay / 1000 + "s"
+  return options.value.stay / 1000 + 's'
 })
 
 let throttledHandler: ReturnType<typeof throttle> | null = null
 
 const createThrottledHandler = (): void => {
   if (throttledHandler) {
-    document.removeEventListener("mousemove", throttledHandler)
+    document.removeEventListener('mousemove', throttledHandler)
   }
   const body = document.body
   throttledHandler = throttle(function (e: MouseEvent): void {
     if (currentPageStatus.value && options.value.status) {
       const icon = images.value[Math.floor(Math.random() * images.value.length)]
       const size =
-        (options.value.min ?? 15) +
-        Math.random() * (options.value.max - options.value.min)
+        (options.value.min ?? 15) + Math.random() * (options.value.max - options.value.min)
 
       const animName = animNames[Math.floor(Math.random() * animNames.length)]
 
-      const emoji = document.createElement("span")
+      const emoji = document.createElement('span')
       emoji.innerText = icon
-      emoji.style.position = "fixed"
-      emoji.style.left = e.clientX + "px"
-      emoji.style.top = e.clientY + "px"
-      emoji.style.zIndex = "9999"
-      emoji.style.pointerEvents = "none"
-      emoji.style.fontSize = size + "px"
+      emoji.style.position = 'fixed'
+      emoji.style.left = e.clientX + 'px'
+      emoji.style.top = e.clientY + 'px'
+      emoji.style.zIndex = '9999'
+      emoji.style.pointerEvents = 'none'
+      emoji.style.fontSize = size + 'px'
       emoji.style.animationName = animName
       emoji.style.animationDuration = compStay.value
-      emoji.style.animationTimingFunction =
-        animName[0] === "s" ? "ease-out" : "ease-in-out"
-      emoji.style.animationFillMode = "forwards"
+      emoji.style.animationTimingFunction = animName[0] === 's' ? 'ease-out' : 'ease-in-out'
+      emoji.style.animationFillMode = 'forwards'
 
       body.appendChild(emoji)
-      emoji.addEventListener("animationend", () => {
+      emoji.addEventListener('animationend', () => {
         emoji.remove()
       })
     }
   }, options.value.duration || 250)
-  document.addEventListener("mousemove", throttledHandler)
+  document.addEventListener('mousemove', throttledHandler)
 }
 
 watch(
@@ -151,35 +151,39 @@ watch(
 )
 
 interface ChangeStatusMsg {
-  type: "change-current-status"
+  type: 'change-current-status'
   data: { currentPageStatus: boolean }
 }
 
 interface OptionsUpdatedMsg {
-  type: "options-updated"
+  type: 'options-updated'
   data: Partial<EmojiOptions>
 }
 
 type ContentMessage = ChangeStatusMsg | OptionsUpdatedMsg
 
 onMounted(() => {
-  chrome.runtime.sendMessage({ type: "get-current-status" }, (response: unknown) => {
+  chrome.runtime.sendMessage({ type: 'get-current-status' }, (response: unknown) => {
     if (chrome.runtime.lastError) return
     currentPageStatus.value = response as boolean
   })
 
   chrome.runtime.onMessage.addListener(
-    (event: ContentMessage, _sender: chrome.runtime.MessageSender, _callable: (response: unknown) => void) => {
-      if (event.type === "change-current-status") {
+    (
+      event: ContentMessage,
+      _sender: chrome.runtime.MessageSender,
+      _callable: (response: unknown) => void
+    ) => {
+      if (event.type === 'change-current-status') {
         currentPageStatus.value = event.data.currentPageStatus
       }
-      if (event.type === "options-updated") {
+      if (event.type === 'options-updated') {
         options.value = { ...initOption, ...event.data }
       }
     }
   )
 
-  chrome.runtime.sendMessage({ type: "get-options" }, (v: unknown) => {
+  chrome.runtime.sendMessage({ type: 'get-options' }, (v: unknown) => {
     if (chrome.runtime.lastError) return
     options.value = { ...initOption, ...(v as Partial<EmojiOptions>) }
     createThrottledHandler()
@@ -188,15 +192,15 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (throttledHandler) {
-    document.removeEventListener("mousemove", throttledHandler)
+    document.removeEventListener('mousemove', throttledHandler)
   }
 })
 </script>
 <script lang="ts">
-import type { PlasmoCSConfig } from "plasmo"
+import type { PlasmoCSConfig } from 'plasmo'
 
 export const config: PlasmoCSConfig = {
-  matches: ["https://*/*", "http://*/*"]
+  matches: ['https://*/*', 'http://*/*']
 }
 </script>
 <style></style>

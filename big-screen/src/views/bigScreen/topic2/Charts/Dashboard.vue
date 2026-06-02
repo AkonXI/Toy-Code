@@ -3,14 +3,14 @@
 </template>
 
 <script>
-import * as echarts from 'echarts';
-import { echartsMixin } from '../../com/echartsMixin';
+import * as echarts from 'echarts'
+import { echartsMixin } from '../../com/echartsMixin'
 export default {
   name: 'DashboardCharts',
   mixins: [echartsMixin],
   props: {
     source: {
-      type: Array,
+      type: Array
     },
     max: {
       type: Number,
@@ -18,31 +18,31 @@ export default {
     },
     series: {
       type: Array,
-      default: () => [],
+      default: () => []
     },
     splitLineType: {
-      type: String,
+      type: String
     },
     id: {
       type: String,
-      default: '',
+      default: ''
     },
     yAxisName: {
       type: String,
-      default: '单位',
-    },
+      default: '单位'
+    }
   },
   data() {
     return {
-      myEchart: null,
-    };
+      myEchart: null
+    }
   },
   methods: {
     initChart() {
-      const chartDom = document.getElementById('DashboardCharts' + this.id);
-      if (!chartDom) return;
+      const chartDom = document.getElementById('DashboardCharts' + this.id)
+      if (!chartDom) return
 
-      this.myEchart = echarts.init(chartDom);
+      this.myEchart = echarts.init(chartDom)
       const option = {
         series: [
           {
@@ -60,9 +60,9 @@ export default {
                 color: [
                   [0.33, '#23A4B6'],
                   [0.67, '#3784F2'],
-                  [1, '#E9A351'],
-                ],
-              },
+                  [1, '#E9A351']
+                ]
+              }
             },
             title: {
               show: false
@@ -71,8 +71,8 @@ export default {
               icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
               length: '12%',
               width: 10,
-              offsetCenter: [0, "-65%"],
-              itemStyle: { color: 'auto' },
+              offsetCenter: [0, '-65%'],
+              itemStyle: { color: 'auto' }
             },
             axisTick: { length: 0, lineStyle: { color: 'auto', width: 1 }, distance: 0 },
             splitLine: { length: 4, lineStyle: { color: 'lightgray', width: 2 }, distance: 0 },
@@ -82,8 +82,8 @@ export default {
               distance: -60,
               rotate: 'tangential',
               formatter: function (value) {
-                return '';
-              },
+                return ''
+              }
             },
             title: {
               show: false
@@ -109,22 +109,21 @@ export default {
                 b: {
                   color: 'white',
                   lineHeight: 36,
-                  fontSize: 22,
-
+                  fontSize: 22
                 },
                 c: {
                   color: 'white',
-                  fontSize: 14,
-                },
+                  fontSize: 14
+                }
               }
             },
-            data: this.source,
-          },
-        ],
-      };
+            data: this.source
+          }
+        ]
+      }
 
-      this.myEchart.setOption(option);
-    },
-  },
-};
+      this.myEchart.setOption(option)
+    }
+  }
+}
 </script>

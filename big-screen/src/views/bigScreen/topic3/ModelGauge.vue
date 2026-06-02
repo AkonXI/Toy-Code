@@ -9,8 +9,8 @@
         <a-radio-button value="02">模式二</a-radio-button>
       </a-radio-group>
     </div>
-    <div class="no-data" v-if="echartsData.length===0">
-      <img src="@/assets/bigScreen/no-data.png" alt="">
+    <div class="no-data" v-if="echartsData.length === 0">
+      <img src="@/assets/bigScreen/no-data.png" alt="" />
       <p>暂无数据</p>
     </div>
     <pie-charts v-else :echartsData="echartsData" :id="'model-pie'" ref="Chart"></pie-charts>
@@ -18,70 +18,71 @@
 </template>
 
 <script>
-import PieCharts from './charts/ProcurementModelGauge.vue';
+import PieCharts from './charts/ProcurementModelGauge.vue'
 import { post } from '@/utils/request'
 import moment from 'moment'
 export default {
   components: {
-    PieCharts,
+    PieCharts
   },
-  props:{
-      query_fields:{
-          type: Object,
-          default: () => {
-              return {
-                  sysCompanyUuid:'',
-                  year: moment(new Date()).format('YYYY'),
-              }
-          }
+  props: {
+    query_fields: {
+      type: Object,
+      default: () => {
+        return {
+          sysCompanyUuid: '',
+          year: moment(new Date()).format('YYYY')
+        }
       }
+    }
   },
   data() {
     return {
       echartsData: {},
-      type: '01',
-    };
+      type: '01'
+    }
   },
-  watch:{
-      query_fields:{
-          handler(val){
-              this.initData()
-          },
-          deep:true
-      }
+  watch: {
+    query_fields: {
+      handler(val) {
+        this.initData()
+      },
+      deep: true
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
   mounted() {},
   methods: {
     comChange(e) {
-      this.type = e.target.value;
-      this.initData();
+      this.type = e.target.value
+      this.initData()
     },
     initData() {
       this.echartsData = {}
 
-      let {sysCompanyUuid,year,isStatisticsChildNode} = this.query_fields
+      let { sysCompanyUuid, year, isStatisticsChildNode } = this.query_fields
       post('/tpm-act-sectioninfo/v1/statisticsProcurementModelDesign', {
-        sysCompanyUuid:sysCompanyUuid,
-        isStatisticsChildNode:isStatisticsChildNode,
-        year:moment(year).format('YYYY'),
-        type:this.type
-      }).then(res=>{
-        let data = res.data[0]
-        data.percent = data.percent.replace('%', '')
-        this.echartsData = {...data}
-        this.$nextTick(() => {
-          this.$refs.Chart.initChart();
-        });
+        sysCompanyUuid: sysCompanyUuid,
+        isStatisticsChildNode: isStatisticsChildNode,
+        year: moment(year).format('YYYY'),
+        type: this.type
       })
-      .catch(err=>{
-        console.log(err,'获取数据失败')
-      })
-    },
-  },
-};
+        .then((res) => {
+          let data = res.data[0]
+          data.percent = data.percent.replace('%', '')
+          this.echartsData = { ...data }
+          this.$nextTick(() => {
+            this.$refs.Chart.initChart()
+          })
+        })
+        .catch((err) => {
+          console.log(err, '获取数据失败')
+        })
+    }
+  }
+}
 </script>
 
 <style lang="less" scoped>
@@ -89,12 +90,12 @@ export default {
   height: 100%;
   width: 100%;
 
-  .no-data{
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
+  .no-data {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
   }
 
   .top-query {

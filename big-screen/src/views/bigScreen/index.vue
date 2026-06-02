@@ -1,6 +1,11 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <!-- 大屏-->
 <template>
-  <screenTitle @queryChange="queryChange" :showDatePicker="type === 1 || type === 2" :screenTitle="screenTitle">
+  <screenTitle
+    @queryChange="queryChange"
+    :showDatePicker="type === 1 || type === 2"
+    :screenTitle="screenTitle"
+  >
     <div class="screen-contain">
       <!-- 左导航 -->
       <div class="l-d">
@@ -21,10 +26,10 @@ import moment from 'moment'
 import screenTitle from '@/views/bigScreen/screenTitle'
 import { autofitMixins } from '@/mixins/autofitMixins'
 import leftNav from '@/views/bigScreen/leftNav/index'
-import TopicFour from '@/views/bigScreen/topic4/riskScreen';
-import TopicOne from '@/views/bigScreen/topic1/index.vue';
-import TopicTwo from '@/views/bigScreen/topic2/index.vue';
-import TopicThree from '@/views/bigScreen/topic3/index.vue';
+import TopicFour from '@/views/bigScreen/topic4/riskScreen'
+import TopicOne from '@/views/bigScreen/topic1/index.vue'
+import TopicTwo from '@/views/bigScreen/topic2/index.vue'
+import TopicThree from '@/views/bigScreen/topic3/index.vue'
 
 export default {
   mixins: [autofitMixins],
@@ -42,16 +47,14 @@ export default {
       screenTitle: '数据可视化大屏',
       query_fields: {
         year: moment(new Date()).format('YYYY'),
-        sysCompanyUuid: this.$store.state.user.userInfo.companyuuid ?? '',
+        sysCompanyUuid: this.$store.state.user.userInfo.companyuuid ?? ''
       }
     }
   },
   created() {
     document.title = this.screenTitle
   },
-  mounted() {
-
-  },
+  mounted() {},
   methods: {
     menuChange(type, info) {
       this.type = type
@@ -60,7 +63,7 @@ export default {
     queryChange(query_fields) {
       this.query_fields = query_fields
     }
-  },
+  }
 }
 </script>
 <style scoped lang="less">

@@ -11,10 +11,12 @@ export function setupTinyMCESpellCheck(
   getErrorMap: () => ErrorDict,
   onErrorsFound?: (list: ErrorTrayItem[]) => void,
   onErrorReplaced?: (errorId: string) => void,
-  onErrorClick?: (errorId: string) => void,
+  onErrorClick?: (errorId: string) => void
 ): SpellCheckAPI {
   function replaceById(errorId: string, newText: string) {
-    const span = editor.getBody().querySelector(`[data-error-id="${errorId}"]`) as HTMLElement | null
+    const span = editor
+      .getBody()
+      .querySelector(`[data-error-id="${errorId}"]`) as HTMLElement | null
     if (span) {
       replaceErrorText(editor.getBody(), span, newText, 'spell-error')
       if (onErrorReplaced) onErrorReplaced(errorId)
@@ -48,7 +50,7 @@ export function setupTinyMCESpellCheck(
 
   editor.ui.registry.addButton('spellcheck', {
     text: '纠错定位',
-    onAction: doSpellCheck,
+    onAction: doSpellCheck
   })
 
   editor.ui.registry.addButton('clearspell', {
@@ -56,7 +58,7 @@ export function setupTinyMCESpellCheck(
     onAction: () => {
       clearHighlights(editor.getBody(), 'spell-error')
       if (onErrorsFound) onErrorsFound([])
-    },
+    }
   })
 
   if (onErrorClick) {

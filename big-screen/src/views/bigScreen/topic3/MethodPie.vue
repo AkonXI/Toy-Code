@@ -10,22 +10,30 @@
       </a-radio-group>
     </div>
     <div class="no-data" v-if="echartsData.length === 0">
-      <img src="@/assets/bigScreen/no-data.png" alt="">
+      <img src="@/assets/bigScreen/no-data.png" alt="" />
       <p>暂无数据</p>
     </div>
-    <pie-charts v-else showBg :centerX="'20%'" :echartsData="echartsData" :unit="type == 1 ? '个' : '万元'" :id="'methos-pie'" ref="Chart"></pie-charts>
+    <pie-charts
+      v-else
+      showBg
+      :centerX="'20%'"
+      :echartsData="echartsData"
+      :unit="type == 1 ? '个' : '万元'"
+      :id="'methos-pie'"
+      ref="Chart"
+    ></pie-charts>
   </div>
 </template>
 
 <script>
-import PieCharts from '../com/PieCharts.vue';
-import { ROSE_COLORS } from '../com/colors';
+import PieCharts from '../com/PieCharts.vue'
+import { ROSE_COLORS } from '../com/colors'
 import { post } from '@/utils/request'
 import moment from 'moment'
 
 export default {
   components: {
-    PieCharts,
+    PieCharts
   },
   props: {
     query_fields: {
@@ -33,7 +41,7 @@ export default {
       default: () => {
         return {
           sysCompanyUuid: '',
-          year: moment(new Date()).format('YYYY'),
+          year: moment(new Date()).format('YYYY')
         }
       }
     }
@@ -41,8 +49,8 @@ export default {
   data() {
     return {
       echartsData: [],
-      type: '1',
-    };
+      type: '1'
+    }
   },
   watch: {
     query_fields: {
@@ -53,49 +61,48 @@ export default {
     }
   },
   created() {
-    this.initData();
+    this.initData()
   },
-  mounted() { },
+  mounted() {},
   methods: {
     comChange(e) {
-      this.type = e.target.value;
-      this.initData();
+      this.type = e.target.value
+      this.initData()
     },
     initData() {
-
-
-      let { sysCompanyUuid, year,isStatisticsChildNode } = this.query_fields
+      let { sysCompanyUuid, year, isStatisticsChildNode } = this.query_fields
       post('/tpm-act-sectioninfo/v1/statisticsProcurementMethod', {
         sysCompanyUuid: sysCompanyUuid,
         isStatisticsChildNode: isStatisticsChildNode,
         year: moment(year).format('YYYY'),
         type: this.type
-      }).then(res => {
-        let data = res.data.filter((item) => {
-          if (Number(item.value)) {
-            return item
-          }
-        })
-        this.echartsData = []
-        this.echartsData = data.map((item, i) => {
-          return {
-            ...item,
-            name: item.name,
-            itemStyle: {
-              color: ROSE_COLORS[i],
-            },
-          };
-        });
-        this.$nextTick(() => {
-          this.$refs.Chart?.initChart();
-        });
       })
-        .catch(err => {
+        .then((res) => {
+          let data = res.data.filter((item) => {
+            if (Number(item.value)) {
+              return item
+            }
+          })
+          this.echartsData = []
+          this.echartsData = data.map((item, i) => {
+            return {
+              ...item,
+              name: item.name,
+              itemStyle: {
+                color: ROSE_COLORS[i]
+              }
+            }
+          })
+          this.$nextTick(() => {
+            this.$refs.Chart?.initChart()
+          })
+        })
+        .catch((err) => {
           console.log(err, '获取数据失败')
         })
-    },
-  },
-};
+    }
+  }
+}
 </script>
 
 <style lang="less" scoped>

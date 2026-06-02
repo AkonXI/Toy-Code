@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="project-doard">
     <div class="space-div first-row">
@@ -67,11 +68,11 @@
 
 <script>
 import TopCards from './TopCards.vue'
-import ItemWrap from '../com/ItemWrap/ItemWrap.vue';
+import ItemWrap from '../com/ItemWrap/ItemWrap.vue'
 
-import StageBar from './StageBar.vue';
-import AmountBar from './AmountBar.vue';
-import PublicTable from './PublicTable.vue';
+import StageBar from './StageBar.vue'
+import AmountBar from './AmountBar.vue'
+import PublicTable from './PublicTable.vue'
 import CatePie from './CatePie.vue'
 import MethodPie from './MethodPie.vue'
 import NaturePie from './NaturePie.vue'
@@ -79,49 +80,43 @@ import ModelGauge from './ModelGauge.vue'
 import ModelPie from './ModelPie.vue'
 import SignPie from './SignPie.vue'
 
-  export default {
-    props:{
-      query_fields:{
-          type: Object,
-          default: () => {
-              return {
-                  year: moment(new Date()).format('YYYY'),
-                  sysCompanyUuid:'',
-              }
-          }
+export default {
+  props: {
+    query_fields: {
+      type: Object,
+      default: () => {
+        return {
+          year: moment(new Date()).format('YYYY'),
+          sysCompanyUuid: ''
+        }
       }
-    },
-    components: {
-      ItemWrap,
-      TopCards,
-      StageBar,
-      AmountBar,
-      PublicTable,
-      CatePie,
-      MethodPie,
-      NaturePie,
-      ModelGauge,
-      ModelPie,
-      SignPie
-    },
-
-    data() {
-      return {
-        
-      }
-    },
-    mounted() {
-      
-    },
-
-    methods: {
-      
     }
-  }
+  },
+  components: {
+    ItemWrap,
+    TopCards,
+    StageBar,
+    AmountBar,
+    PublicTable,
+    CatePie,
+    MethodPie,
+    NaturePie,
+    ModelGauge,
+    ModelPie,
+    SignPie
+  },
+
+  data() {
+    return {}
+  },
+  mounted() {},
+
+  methods: {}
+}
 </script>
 
 <style lang="less" scoped>
-.project-doard{
+.project-doard {
   width: 100%;
   height: 100%;
   padding: 0 20px;
@@ -136,10 +131,12 @@ import SignPie from './SignPie.vue'
     margin-bottom: 12px;
   }
 }
-.first-row{
+.first-row {
   height: 100px;
 }
-.second-row,.third-row,.last-row{
+.second-row,
+.third-row,
+.last-row {
   height: calc(33% - 46px);
 }
 </style>

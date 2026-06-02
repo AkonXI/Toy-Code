@@ -17,14 +17,14 @@
 </template>
 
 <script>
-import PieCharts from './charts/PieCharts.vue';
-import { ROSE_COLORS } from '../com/colors';
-import { post } from '@/utils/request';
-import moment from 'moment';
+import PieCharts from './charts/PieCharts.vue'
+import { ROSE_COLORS } from '../com/colors'
+import { post } from '@/utils/request'
+import moment from 'moment'
 
 export default {
   components: {
-    PieCharts,
+    PieCharts
   },
   props: {
     query_fields: {
@@ -32,59 +32,59 @@ export default {
       default: () => {
         return {
           sysCompanyUuid: '',
-          year: moment(new Date()).format('YYYY'),
-        };
-      },
-    },
+          year: moment(new Date()).format('YYYY')
+        }
+      }
+    }
   },
   data() {
     return {
-      echartsData: [],
-    };
+      echartsData: []
+    }
   },
   watch: {
     query_fields: {
       handler(val) {
-        this.initData();
+        this.initData()
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
   mounted() {},
   methods: {
     initData() {
-
-      let {sysCompanyUuid,year,isStatisticsChildNode} = this.query_fields
+      let { sysCompanyUuid, year, isStatisticsChildNode } = this.query_fields
       post('/tpm-act-sectioninfo/v1/statisticsProcurementCategory', {
-        sysCompanyUuid:sysCompanyUuid,
-        year:moment(year).format('YYYY'),
-        isStatisticsChildNode:isStatisticsChildNode,
-      }).then(res=>{
-        this.echartsData = res.data.map((item, i) => {
-          return {
-            ...item,
-            name: item.name,
-            itemStyle: {
-              color: ROSE_COLORS[i],
-            },
-          };
-        });
-        this.$nextTick(() => {
-          this.$refs.Chart.initChart(this.echartsData);
-        });
+        sysCompanyUuid: sysCompanyUuid,
+        year: moment(year).format('YYYY'),
+        isStatisticsChildNode: isStatisticsChildNode
       })
-      .catch(err=>{
-        console.log(err,'获取数据失败')
-      })
+        .then((res) => {
+          this.echartsData = res.data.map((item, i) => {
+            return {
+              ...item,
+              name: item.name,
+              itemStyle: {
+                color: ROSE_COLORS[i]
+              }
+            }
+          })
+          this.$nextTick(() => {
+            this.$refs.Chart.initChart(this.echartsData)
+          })
+        })
+        .catch((err) => {
+          console.log(err, '获取数据失败')
+        })
     },
-    backClick(){
+    backClick() {
       this.$refs.Chart.initChart(this.echartsData)
-    },
-  },
-};
+    }
+  }
+}
 </script>
 
 <style lang="less" scoped>

@@ -6,25 +6,18 @@
     <div class="center-d space-div">
       <a-row :gutter="16">
         <a-col :span="5">
-          <ItemWrap :topL="false" :topR="false" >
+          <ItemWrap :topL="false" :topR="false">
             <centerLeft :query_fields="query_fields"></centerLeft>
           </ItemWrap>
         </a-col>
         <a-col :span="12">
-          <ItemWrap
-            :topL="false"
-            title="数据总量统计"
-          >
+          <ItemWrap :topL="false" title="数据总量统计">
             <centerCenter :query_fields="query_fields"></centerCenter>
           </ItemWrap>
         </a-col>
         <a-col :span="7">
-          <ItemWrap
-            :topL="false"
-            :topR="false"
-            title="各阶段占比"
-          >
-          <centerRight :query_fields="query_fields"></centerRight>
+          <ItemWrap :topL="false" :topR="false" title="各阶段占比">
+            <centerRight :query_fields="query_fields"></centerRight>
           </ItemWrap>
         </a-col>
       </a-row>
@@ -32,21 +25,14 @@
     <div class="bottom-d space-div">
       <a-row :gutter="16">
         <a-col :span="17">
-          <ItemWrap
-            :topL="false"
-            title="管控信息明细"
-          >
+          <ItemWrap :topL="false" title="管控信息明细">
             <bottomTable :query_fields="query_fields"></bottomTable>
           </ItemWrap>
         </a-col>
 
         <a-col :span="7">
-          <ItemWrap
-            :topL="false"
-            :topR="false"
-            title="各单位总量统计"
-          >
-          <bottomList></bottomList>
+          <ItemWrap :topL="false" :topR="false" title="各单位总量统计">
+            <bottomList></bottomList>
           </ItemWrap>
         </a-col>
       </a-row>
@@ -54,37 +40,35 @@
   </div>
 </template>
 <script>
-import moment from 'moment';
-import ItemWrap from '../com/ItemWrap/ItemWrap.vue';
-import topCard from './topCard.vue';
+import moment from 'moment'
+import ItemWrap from '../com/ItemWrap/ItemWrap.vue'
+import topCard from './topCard.vue'
 
-import bottomTable from './bottomTable.vue';
-import bottomList from './bottomList.vue';
-import centerLeft from './centerLeft.vue';
-import centerRight from './centerRight.vue';
-import centerCenter from './centerCenter.vue';
+import bottomTable from './bottomTable.vue'
+import bottomList from './bottomList.vue'
+import centerLeft from './centerLeft.vue'
+import centerRight from './centerRight.vue'
+import centerCenter from './centerCenter.vue'
 
 export default {
-  components: { ItemWrap, topCard, bottomTable,bottomList, centerLeft,centerCenter,centerRight },
-  props:{
-      query_fields:{
-          type: Object,
-          default: () => {
-              return {
-                  year: moment(new Date()).format('YYYY'),
-                  sysCompanyUuid:'',
-              }
-          }
+  components: { ItemWrap, topCard, bottomTable, bottomList, centerLeft, centerCenter, centerRight },
+  props: {
+    query_fields: {
+      type: Object,
+      default: () => {
+        return {
+          year: moment(new Date()).format('YYYY'),
+          sysCompanyUuid: ''
+        }
       }
+    }
   },
   data() {
-    return {
-    };
+    return {}
   },
-  mounted() {
-  },
+  mounted() {},
   methods: {}
-};
+}
 </script>
 <style scoped lang="less">
 .risk-con {
@@ -114,8 +98,6 @@ export default {
     flex: 1;
     min-height: 100px;
   }
-
-  
 }
 .d-flex {
   display: flex;

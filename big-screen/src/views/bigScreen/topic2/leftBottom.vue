@@ -2,8 +2,12 @@
   <div class="bottom-list flex flex-col">
     <div class="top-query">
       <div class="flex justify-between pt-3">
-        <a-select :dropdownMenuStyle="{ fontSize: '12px' }" v-model="selectData" @change="changeSelect"
-          placeholder="排名一">
+        <a-select
+          :dropdownMenuStyle="{ fontSize: '12px' }"
+          v-model="selectData"
+          @change="changeSelect"
+          placeholder="排名一"
+        >
           <a-select-option value="1">排名一</a-select-option>
           <a-select-option value="2">排名二</a-select-option>
         </a-select>
@@ -24,24 +28,31 @@
     <div class="no-data" v-if="list.length === 0">
       <img src="@/assets/bigScreen/no-data.png" alt="" />
       <p>暂无数据</p>
-
     </div>
     <template v-else>
-      <vue-seamless-scroll @ScrollEnd="scrollEnd" :key="rdmk" :data="list" :class-option="classOption"
-        class="wrap px-0 py-2">
+      <vue-seamless-scroll
+        @ScrollEnd="scrollEnd"
+        :key="rdmk"
+        :data="list"
+        :class-option="classOption"
+        class="wrap px-0 py-2"
+      >
         <ul>
           <li class="item-list" v-for="(item, index) in list" :key="index">
             <div class="left-d">
               <div class="item-icon" :class="'item-' + index">{{ index + 1 }}</div>
               <div class="flex-1 w-1">
                 <div class="item-title w-full text-[16px] text-white flex justify-between">
-                  <span class="flex-1 w-1  overflow-hidden text-ellipsis" :title="item.name"> {{ item.name }} </span>
+                  <span class="flex-1 w-1 overflow-hidden text-ellipsis" :title="item.name">
+                    {{ item.name }}
+                  </span>
                   <span class="flex-none">{{ item.value }}{{ currentUnit }}</span>
                 </div>
-                <div class="w-full h-[10px] bg-[#FFFFFF29] ">
-                  <div class="h-full relative progress"
-                    :style="{ width: `${(Number(item.value) / maxProgress) * 100}%` }">
-                  </div>
+                <div class="w-full h-[10px] bg-[#FFFFFF29]">
+                  <div
+                    class="h-full relative progress"
+                    :style="{ width: `${(Number(item.value) / maxProgress) * 100}%` }"
+                  ></div>
                 </div>
               </div>
             </div>
@@ -49,30 +60,39 @@
         </ul>
       </vue-seamless-scroll>
     </template>
-
   </div>
 </template>
 <script>
-import { post } from '@/utils/request';
-import vueSeamlessScroll from 'vue-seamless-scroll';
+import { post } from '@/utils/request'
+import vueSeamlessScroll from 'vue-seamless-scroll'
 const ApiMap = {
   1: '/tpm-bd-screen/v1/querySupplierInfoLeftBottom',
   2: '/tpm-bd-screen/v1/queryTenderagentInfoLeftBottom'
 }
-const unitMap = [{
-  unit: '个',
-  used: [['1', '1'], ['2', '2']]
-
-}, {
-  unit: '万元',
-  used: [['1', '2'], ['1', '3'], ['1', '4']],
-}, {
-  unit: '分',
-  used: [['2', '1']],
-}]
+const unitMap = [
+  {
+    unit: '个',
+    used: [
+      ['1', '1'],
+      ['2', '2']
+    ]
+  },
+  {
+    unit: '万元',
+    used: [
+      ['1', '2'],
+      ['1', '3'],
+      ['1', '4']
+    ]
+  },
+  {
+    unit: '分',
+    used: [['2', '1']]
+  }
+]
 export default {
   components: {
-    vueSeamlessScroll,
+    vueSeamlessScroll
   },
 
   data() {
@@ -82,8 +102,8 @@ export default {
       classOption: { limitMoveNum: 9, autoPlay: false },
       typeRadio: '1',
       list: [],
-      statisticsTimeRange: 'year',
-    };
+      statisticsTimeRange: 'year'
+    }
   },
   props: {
     query_fields: {
@@ -91,7 +111,7 @@ export default {
       default: () => {
         return {
           year: moment(new Date()).format('YYYY'),
-          sysCompanyUuid: '',
+          sysCompanyUuid: ''
         }
       }
     }
@@ -99,31 +119,37 @@ export default {
   watch: {
     query_fields: {
       handler(val) {
-        this.initData();
+        this.initData()
       },
-      deep: true,
-    },
-
+      deep: true
+    }
   },
   computed: {
     currentUnit() {
-      return unitMap.find(v => v.used.find(v => v[0] == this.selectData && v[1] == this.typeRadio))?.unit
+      return unitMap.find((v) =>
+        v.used.find((v) => v[0] == this.selectData && v[1] == this.typeRadio)
+      )?.unit
     },
     maxProgress() {
-      return this.selectData == '1' && this.typeRadio == '0' ? 110 : Math.max(...this.list.map((v) => Number(v.value))) / 0.9;
-    },
+      return this.selectData == '1' && this.typeRadio == '0'
+        ? 110
+        : Math.max(...this.list.map((v) => Number(v.value))) / 0.9
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
   methods: {
     typeRadioChange(e) {
       this.list = []
-      this.initData();
+      this.initData()
     },
     scrollEnd() {
       this.classOption.autoPlay = false
-      setTimeout(() => { this.rdmk = Math.random(); this.classOption.autoPlay = true; }, 3000)
+      setTimeout(() => {
+        this.rdmk = Math.random()
+        this.classOption.autoPlay = true
+      }, 3000)
     },
     changeSelect() {
       this.typeRadio = '1'
@@ -133,10 +159,10 @@ export default {
       this.classOption.autoPlay = false
       this.rdmk = Math.random()
       post(ApiMap[this.selectData], {
-        "dimension": this.typeRadio,
-        "extendProps": {},
+        dimension: this.typeRadio,
+        extendProps: {},
         sysCompanyUuid: this.query_fields.sysCompanyUuid,
-        isStatisticsChildNode: this.query_fields.isStatisticsChildNode,
+        isStatisticsChildNode: this.query_fields.isStatisticsChildNode
       })
         .then((res) => {
           if (res?.data?.dataList?.length > 0) {
@@ -144,21 +170,21 @@ export default {
               return {
                 name: item.itemName,
                 value: item.itemNum
-              };
-            });
+              }
+            })
             setTimeout(() => {
               this.classOption.autoPlay = true
-            }, 3000);
+            }, 3000)
           } else {
-            this.list = [];
+            this.list = []
           }
         })
         .catch((err) => {
-          console.log(err, '获取数据失败');
-        });
-    },
-  },
-};
+          console.log(err, '获取数据失败')
+        })
+    }
+  }
+}
 </script>
 <style scoped lang="less">
 .bottom-list {

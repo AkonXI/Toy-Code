@@ -9,14 +9,13 @@
       </DashBoardCharts>
     </div>
   </div>
-
 </template>
 
 <script setup>
-import { post } from '@/utils/request';
-import { ref, nextTick, watch, onMounted } from 'vue';
-import DashBoardCharts from './Charts/Dashboard.vue';
-import moment from "moment"
+import { post } from '@/utils/request'
+import { ref, nextTick, watch, onMounted } from 'vue'
+import DashBoardCharts from './Charts/Dashboard.vue'
+import moment from 'moment'
 const ChartLeft = ref()
 const ChartRight = ref()
 const ChartLeftData = ref([])
@@ -27,18 +26,17 @@ const props = defineProps({
     default: () => {
       return {
         year: moment(new Date()).format('YYYY'),
-        sysCompanyUuid: '',
+        sysCompanyUuid: ''
       }
     }
   }
 })
 const initData = async () => {
   try {
-
     const res = await post('/tpm-bd-screen/v1/queryInfoMiddleDown', {
-      "extendProps": {},
+      extendProps: {},
       sysCompanyUuid: props.query_fields.sysCompanyUuid,
-      isStatisticsChildNode: props.query_fields.isStatisticsChildNode,
+      isStatisticsChildNode: props.query_fields.isStatisticsChildNode
     })
     console.log(res)
     ChartLeftData.value = [res?.data?.dataList?.[0]].map((item, index) => {
@@ -55,8 +53,6 @@ const initData = async () => {
         value: item.percent
       }
     })
-
-
   } catch (err) {
     console.log(err)
 
@@ -67,15 +63,17 @@ const initData = async () => {
     ChartLeft.value?.initChart()
     ChartRight.value?.initChart()
   })
-
 }
-watch(props.query_fields, () => {
-  initData();
-}, { deep: true })
+watch(
+  props.query_fields,
+  () => {
+    initData()
+  },
+  { deep: true }
+)
 onMounted(() => {
   initData()
 })
-
 </script>
 
 <style lang="less" scoped></style>

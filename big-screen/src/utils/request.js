@@ -5,7 +5,7 @@ export async function post(url, params) {
   if (typeof match === 'function') {
     match = match(params)
   }
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     setTimeout(() => resolve(JSON.parse(JSON.stringify(match))), 200 + Math.random() * 300)
   })
 }

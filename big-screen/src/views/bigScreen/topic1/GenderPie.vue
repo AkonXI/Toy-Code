@@ -3,11 +3,11 @@
 </template>
 
 <script>
-import * as echarts from 'echarts';
-import mail from '@/assets/bigScreen/mail.png';
-import femail from '@/assets/bigScreen/femail.png';
-import { post } from '@/utils/request';
-import { echartsMixin } from '../com/echartsMixin';
+import * as echarts from 'echarts'
+import mail from '@/assets/bigScreen/mail.png'
+import femail from '@/assets/bigScreen/femail.png'
+import { post } from '@/utils/request'
+import { echartsMixin } from '../com/echartsMixin'
 
 export default {
   name: 'BarCharts',
@@ -15,47 +15,47 @@ export default {
   props: {
     id: {
       type: String,
-      default: '',
+      default: ''
     },
     query_fields: {
       type: Object,
       default: () => {
         return {
           year: moment(new Date()).format('YYYY'),
-          sysCompanyUuid: '',
-        };
-      },
-    },
+          sysCompanyUuid: ''
+        }
+      }
+    }
   },
   watch: {
     query_fields: {
       handler(val) {
-        this.initChart();
+        this.initChart()
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   data() {
     return {
       myEchart: null,
       mail,
-      femail,
-    };
+      femail
+    }
   },
   mounted() {
-    this.initChart();
+    this.initChart()
   },
   methods: {
     async initChart() {
       const res = await post('/tpm-bd-screen/v1/queryExpertTypeInfo', {
         dimension: '3',
-        "extendProps": {},
+        extendProps: {},
         sysCompanyUuid: this.query_fields.sysCompanyUuid,
-        isStatisticsChildNode: this.query_fields.isStatisticsChildNode,
+        isStatisticsChildNode: this.query_fields.isStatisticsChildNode
       })
-      const chartDom = document.getElementById('BarCharts' + this.id);
-      if (!chartDom) return;
-      this.myEchart = echarts.init(chartDom);
+      const chartDom = document.getElementById('BarCharts' + this.id)
+      if (!chartDom) return
+      this.myEchart = echarts.init(chartDom)
       const colorList = ['#E31CCF', '#71E5FF']
       const option = {
         graphic: [
@@ -65,21 +65,21 @@ export default {
             style: {
               image: this.femail, // 替换为男图标URL
               width: 60,
-              height: 60,
+              height: 60
             },
             left: '35%', // 水平居中偏左
-            top: 'center', // 垂直居中
+            top: 'center' // 垂直居中
           },
           {
             type: 'image',
             style: {
               image: this.mail, // 替换为女图标URL
               width: 60,
-              height: 60,
+              height: 60
             },
             right: '35%', // 水平居中偏左
-            top: 'center', // 垂直居中
-          },
+            top: 'center' // 垂直居中
+          }
         ],
         series: [
           {
@@ -103,7 +103,7 @@ export default {
             },
             padAngle: 5,
             itemStyle: {
-              borderRadius: 10,
+              borderRadius: 10
             },
             data: res.data.dataList.map((v, i) => {
               return {
@@ -113,13 +113,13 @@ export default {
                   color: colorList[i]
                 }
               }
-            }),
-          },
-        ],
-      };
+            })
+          }
+        ]
+      }
 
-      this.myEchart.setOption(option);
-    },
-  },
-};
+      this.myEchart.setOption(option)
+    }
+  }
+}
 </script>

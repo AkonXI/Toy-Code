@@ -22,7 +22,7 @@ const initialDict: DictEntry[] = [
   { id: 3, word: '必须', suggestions: ['必需'], level: 1 },
   { id: 4, word: '方案包含', suggestions: ['方案包括'], level: 1 },
   { id: 5, word: '账户', suggestions: ['帐户'], level: 1 },
-  { id: 6, word: '😀账户', suggestions: ['😀帐户'], level: 1 },
+  { id: 6, word: '😀账户', suggestions: ['😀帐户'], level: 1 }
 ]
 
 const ErrorDictContext = createContext<ErrorDictContextValue | null>(null)
@@ -38,22 +38,33 @@ export function ErrorDictProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('spellCheckDict', JSON.stringify(newDict))
   }, [])
 
-  const addEntry = useCallback((entry: Omit<DictEntry, 'id'>) => {
-    const newEntry: DictEntry = { ...entry, id: Date.now() }
-    saveDict([...dict, newEntry])
-  }, [dict, saveDict])
+  const addEntry = useCallback(
+    (entry: Omit<DictEntry, 'id'>) => {
+      const newEntry: DictEntry = { ...entry, id: Date.now() }
+      saveDict([...dict, newEntry])
+    },
+    [dict, saveDict]
+  )
 
-  const updateEntry = useCallback((id: number, updates: Partial<DictEntry>) => {
-    saveDict(dict.map(e => e.id === id ? { ...e, ...updates } : e))
-  }, [dict, saveDict])
+  const updateEntry = useCallback(
+    (id: number, updates: Partial<DictEntry>) => {
+      saveDict(dict.map((e) => (e.id === id ? { ...e, ...updates } : e)))
+    },
+    [dict, saveDict]
+  )
 
-  const removeEntry = useCallback((id: number) => {
-    saveDict(dict.filter(e => e.id !== id))
-  }, [dict, saveDict])
+  const removeEntry = useCallback(
+    (id: number) => {
+      saveDict(dict.filter((e) => e.id !== id))
+    },
+    [dict, saveDict]
+  )
 
   const getErrorMap = useCallback((): ErrorDict => {
     const map: ErrorDict = {}
-    dict.forEach(e => { map[e.word] = e.suggestions })
+    dict.forEach((e) => {
+      map[e.word] = e.suggestions
+    })
     return map
   }, [dict])
 

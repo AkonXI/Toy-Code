@@ -9,89 +9,97 @@
         <a-radio-button value="month"> 本月</a-radio-button>
       </a-radio-group>
     </div>
-    <div class="no-data" v-if="echartsData.length===0">
-      <img src="@/assets/bigScreen/no-data.png" alt="">
+    <div class="no-data" v-if="echartsData.length === 0">
+      <img src="@/assets/bigScreen/no-data.png" alt="" />
       <p>暂无数据</p>
     </div>
-    <pie-charts v-else roseType :centerX="'30%'" :unit="''" :echartsData="echartsData" :id="'risk-center'" ref="Chart"></pie-charts>
+    <pie-charts
+      v-else
+      roseType
+      :centerX="'30%'"
+      :unit="''"
+      :echartsData="echartsData"
+      :id="'risk-center'"
+      ref="Chart"
+    ></pie-charts>
   </div>
 </template>
 
 <script>
-import PieCharts from '../com/PieCharts.vue';
-import { ROSE_COLORS } from '../com/colors';
+import PieCharts from '../com/PieCharts.vue'
+import { ROSE_COLORS } from '../com/colors'
 import { post } from '@/utils/request'
 
 export default {
   components: {
-    PieCharts,
+    PieCharts
   },
-  props:{
-      query_fields:{
-          type: Object,
-          default: () => {
-              return {
-                  sysCompanyUuid:'',
-              }
-          }
+  props: {
+    query_fields: {
+      type: Object,
+      default: () => {
+        return {
+          sysCompanyUuid: ''
+        }
       }
+    }
   },
   data() {
     return {
       echartsData: [],
-      statisticsTimeRange: 'year',
-    };
+      statisticsTimeRange: 'year'
+    }
   },
-  watch:{
-      query_fields:{
-          handler(val){
-              this.initData()
-          },
-          deep:true
-      }
+  watch: {
+    query_fields: {
+      handler(val) {
+        this.initData()
+      },
+      deep: true
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
   mounted() {},
   methods: {
     comChange(e) {
-      this.statisticsTimeRange = e.target.value;
-      this.initData();
+      this.statisticsTimeRange = e.target.value
+      this.initData()
     },
     initData() {
       post('/tpm-warn-record/v1/statisticsRateByStage', {
-        sysCompanyUuid:this.query_fields.sysCompanyUuid,
-        isStatisticsChildNode:this.query_fields.isStatisticsChildNode,
-        statisticsTimeRange:this.statisticsTimeRange
-      }).then((res) => {
-        if(res?.data?.length>0){
-          let data = res.data.filter(item => item.value > 0);
-          if(!data.length) return
-          this.echartsData = data.map((item, i) => {
-            return {
-              ...item,
-              name: item.name,
-              itemStyle: {
-                color: ROSE_COLORS[i],
-              },
-            };
-          });
-
-          this.$nextTick(() => {
-            this.$refs.Chart.initChart();
-          });
-        }else{
-          this.echartsData = []
-        }
-
+        sysCompanyUuid: this.query_fields.sysCompanyUuid,
+        isStatisticsChildNode: this.query_fields.isStatisticsChildNode,
+        statisticsTimeRange: this.statisticsTimeRange
       })
-      .catch(err=>{
-        console.log(err,'获取数据失败')
-      })
-    },
-  },
-};
+        .then((res) => {
+          if (res?.data?.length > 0) {
+            let data = res.data.filter((item) => item.value > 0)
+            if (!data.length) return
+            this.echartsData = data.map((item, i) => {
+              return {
+                ...item,
+                name: item.name,
+                itemStyle: {
+                  color: ROSE_COLORS[i]
+                }
+              }
+            })
+
+            this.$nextTick(() => {
+              this.$refs.Chart.initChart()
+            })
+          } else {
+            this.echartsData = []
+          }
+        })
+        .catch((err) => {
+          console.log(err, '获取数据失败')
+        })
+    }
+  }
+}
 </script>
 
 <style lang="less" scoped>
@@ -99,12 +107,12 @@ export default {
   height: 100%;
   width: 100%;
 
-  .no-data{
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
+  .no-data {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
   }
 
   .top-query {

@@ -1,6 +1,5 @@
 <template>
   <div class="relative size-full">
-
     <div class="top-query bottom-full">
       <a-space>
         <a-radio-group v-model="typeRadio" @change="typeRadioChange">
@@ -14,21 +13,27 @@
         <img src="@/assets/bigScreen/no-data.png" alt="" />
         <p>暂无数据</p>
       </div>
-      <pie-charts v-else showBg :customTitle="(total) => `{total|${total}}\n\n{text|总数}`" :echartsData="echartsData"
-        :id="'right-bottom'" ref="Chart"></pie-charts>
+      <pie-charts
+        v-else
+        showBg
+        :customTitle="(total) => `{total|${total}}\n\n{text|总数}`"
+        :echartsData="echartsData"
+        :id="'right-bottom'"
+        ref="Chart"
+      ></pie-charts>
     </div>
   </div>
 </template>
 
 <script>
-import PieCharts from '../com/PieCharts.vue';
-import { ROSE_COLORS } from '../com/colors';
-import { post } from '@/utils/request';
-import moment from "moment"
+import PieCharts from '../com/PieCharts.vue'
+import { ROSE_COLORS } from '../com/colors'
+import { post } from '@/utils/request'
+import moment from 'moment'
 
 export default {
   components: {
-    PieCharts,
+    PieCharts
   },
   props: {
     query_fields: {
@@ -36,63 +41,60 @@ export default {
       default: () => {
         return {
           year: moment(new Date()).format('YYYY'),
-          sysCompanyUuid: '',
-        };
-      },
-    },
+          sysCompanyUuid: ''
+        }
+      }
+    }
   },
   watch: {
     query_fields: {
       handler(val) {
-        this.initData();
+        this.initData()
       },
-      deep: true,
-    },
+      deep: true
+    }
   },
   created() {
-    this.initData();
+    this.initData()
   },
-  mounted() { },
+  mounted() {},
   data() {
     return {
       typeRadio: '1',
-      echartsData: [],
+      echartsData: []
     }
   },
   methods: {
     typeRadioChange(e) {
-      this.initData();
+      this.initData()
       this.$refs.Chart.resize()
     },
     async initData() {
       try {
-
         const res = await post('/tpm-bd-screen/v1/queryInfoRightBottom', {
           dimension: this.typeRadio,
           sysCompanyUuid: this.query_fields.sysCompanyUuid,
           isStatisticsChildNode: this.query_fields.isStatisticsChildNode,
-          "extendProps": {}
+          extendProps: {}
         })
-        this.echartsData = [];
+        this.echartsData = []
         this.echartsData = res?.data?.dataList.map((item, i) => {
           return {
             name: item.itemName,
             value: item.itemNum,
             percent: item.percent,
             itemStyle: {
-              color: ROSE_COLORS[i],
-            },
-          };
-        });
+              color: ROSE_COLORS[i]
+            }
+          }
+        })
         this.$nextTick(() => {
-          this.$refs?.Chart?.initChart();
-        });
-      } catch (err) {
-
-      }
+          this.$refs?.Chart?.initChart()
+        })
+      } catch (err) {}
     }
   }
-};
+}
 </script>
 
 <style lang="less" scoped>

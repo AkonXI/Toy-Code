@@ -1069,10 +1069,9 @@ describe('utils', () => {
     })
 
     it('supplementCount should reset on accept/reject', () => {
-      let supplementCount = 3
+      let supplementCount = 0
 
       // accept or reject resets
-      supplementCount = 0
       expect(supplementCount).toBe(0)
 
       supplementCount++

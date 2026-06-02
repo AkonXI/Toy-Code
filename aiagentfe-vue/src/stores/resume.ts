@@ -12,6 +12,7 @@ import {
 } from '@/api'
 
 import type { Message } from '@/types/chat'
+import { mapApiMessage } from '@/lib/editor-utils'
 
 export const useResumeStore = defineStore('resume', () => {
   const fileName = ref('')
@@ -77,12 +78,7 @@ export const useResumeStore = defineStore('resume', () => {
     const totalMessages = result.pagination?.total ?? apiMessages.length
     const initialPrompt = data.initialPrompt || ''
 
-    messages.value = apiMessages.map((m) => ({
-      id: String(m.id),
-      role: m.role,
-      content: m.content,
-      reasoning: m.reasoning || ''
-    }))
+    messages.value = apiMessages.map((m: any) => mapApiMessage(m))
 
     documents.value = apiDocs
     resumeContent.value = data.resumeContent || ''

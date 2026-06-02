@@ -1,5 +1,5 @@
-import { tool } from "ai";
-import { z } from "zod";
+import { tool } from 'ai'
+import { z } from 'zod'
 
 export const updateResumeTool = tool({
   description:
@@ -9,18 +9,12 @@ export const updateResumeTool = tool({
     current: z.string(),
     suggestion: z.string(),
     reason: z.string(),
-    priority: z.string(),
+    priority: z.string()
   }),
-  execute: async ({
-    field,
-    current,
-    suggestion,
-    reason,
-    priority,
-  }) => ({
-    optimization: { field, current, suggestion, reason, priority },
-  }),
-});
+  execute: async ({ field, current, suggestion, reason, priority }) => ({
+    optimization: { field, current, suggestion, reason, priority }
+  })
+})
 
 export const proposeModificationTool = tool({
   description:
@@ -29,9 +23,9 @@ export const proposeModificationTool = tool({
     field: z.string(),
     current: z.string(),
     suggestion: z.string(),
-    reason: z.string(),
+    reason: z.string()
   }),
   execute: async ({ field, current, suggestion, reason }) => ({
-    modification: { field, current, suggestion, reason },
-  }),
-});
+    modification: { field, current, suggestion, reason }
+  })
+})

@@ -45,6 +45,8 @@ export interface MessageRecord {
   role: 'user' | 'assistant'
   content: string
   reasoning?: string
+  client_id?: string
+  status?: string
   created_at: number
 }
 export interface DocumentRecord {
@@ -138,7 +140,11 @@ export async function restoreDocVersion(
 }
 
 export async function renderResumePdf(markdown: string): Promise<Blob> {
-  const response = await service.post('/rag/render-resume-pdf', { markdown }, { responseType: 'blob' })
+  const response = await service.post(
+    '/rag/render-resume-pdf',
+    { markdown },
+    { responseType: 'blob' }
+  )
   return response as unknown as Blob
 }
 

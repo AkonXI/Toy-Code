@@ -6,8 +6,7 @@ function parseInlineStyle(styleStr: string): Record<string, any> {
     if (k === 'font-size') {
       const n = parseFloat(v)
       result.fontSize = v.endsWith('em') ? Math.round(n * 10) : n
-    }
-    else if (k === 'color') result.color = v
+    } else if (k === 'color') result.color = v
     else if (k === 'font-weight' && v === 'bold') result.fontWeight = 'bold'
     else if (k === 'background-color') result.backgroundColor = v
     else if (k === 'text-decoration') result.textDecoration = v === 'underline' ? 'underline' : v
@@ -17,7 +16,6 @@ function parseInlineStyle(styleStr: string): Record<string, any> {
 
 function renderInline(text: string): { t: string; b?: boolean; s?: Record<string, any> }[] {
   const segments: { t: string; b?: boolean; s?: Record<string, any> }[] = []
-  // 归一化 LLM 常见的标签格式错误
   text = text.replace(/<\/%(span)>/g, '</%span%>')
   const spanRe = /<%(span)(?:\s+style="([^"]*)")?\s*%>([\s\S]*?)<\/%\1%>/g
   let last = 0
@@ -48,7 +46,10 @@ function pushBold(segments: { t: string; b?: boolean; s?: Record<string, any> }[
 }
 
 export default function RenderSuggestion({ text }: { text: string }) {
-  const blocks: { type: 'para' | 'list'; segs: { t: string; b?: boolean; s?: Record<string, any> }[] }[] = []
+  const blocks: {
+    type: 'para' | 'list'
+    segs: { t: string; b?: boolean; s?: Record<string, any> }[]
+  }[] = []
   let bKey = 0
 
   for (const block of text.split('\n\n')) {
@@ -72,13 +73,31 @@ export default function RenderSuggestion({ text }: { text: string }) {
           return (
             <div key={key} style={{ display: 'flex', gap: 6, marginBottom: 2 }}>
               <span style={{ flexShrink: 0 }}>•</span>
-              <span>{block.segs.map((seg, i) => seg.b ? <strong key={i}>{seg.t}</strong> : <span key={i} style={seg.s}>{seg.t}</span>)}</span>
+              <span>
+                {block.segs.map((seg, i) =>
+                  seg.b ? (
+                    <strong key={i}>{seg.t}</strong>
+                  ) : (
+                    <span key={i} style={seg.s}>
+                      {seg.t}
+                    </span>
+                  )
+                )}
+              </span>
             </div>
           )
         }
         return (
           <div key={key} style={{ marginBottom: 6, lineHeight: 1.6 }}>
-            {block.segs.map((seg, i) => seg.b ? <strong key={i}>{seg.t}</strong> : <span key={i} style={seg.s}>{seg.t}</span>)}
+            {block.segs.map((seg, i) =>
+              seg.b ? (
+                <strong key={i}>{seg.t}</strong>
+              ) : (
+                <span key={i} style={seg.s}>
+                  {seg.t}
+                </span>
+              )
+            )}
           </div>
         )
       })}

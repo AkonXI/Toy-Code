@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS messages (
   role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
   content TEXT NOT NULL,
   reasoning TEXT DEFAULT '',
+  client_id TEXT,
+  status TEXT DEFAULT 'completed',
   summarized INTEGER DEFAULT 0,
   created_at INTEGER NOT NULL,
   FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE

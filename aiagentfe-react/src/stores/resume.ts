@@ -11,6 +11,7 @@ import {
   type MessageRecord
 } from '@/api'
 import type { Message } from '@/types/chat'
+import { mapApiMessage } from '@/lib/editor-utils'
 
 let _loadSeq = 0
 
@@ -101,12 +102,7 @@ export const useResumeStore = create<ResumeState>()((set, get) => ({
       const intPrompt = data.initialPrompt || ''
 
       set({
-        messages: apiMessages.map((m: MessageRecord) => ({
-          id: String(m.id),
-          role: m.role,
-          content: m.content,
-          reasoning: m.reasoning || ''
-        })),
+        messages: apiMessages.map((m: MessageRecord) => mapApiMessage(m)),
         documents: apiDocs,
         initialPrompt: intPrompt,
         resumeContent: data.resumeContent || '',
@@ -121,7 +117,10 @@ export const useResumeStore = create<ResumeState>()((set, get) => ({
           const blob = await renderResumePdf(md)
           const state = get()
           if (state.fileBlobUrl) URL.revokeObjectURL(state.fileBlobUrl)
-          set({ fileBlobUrl: URL.createObjectURL(blob), fileName: latestDoc?.original_name || 'resume.pdf' })
+          set({
+            fileBlobUrl: URL.createObjectURL(blob),
+            fileName: latestDoc?.original_name || 'resume.pdf'
+          })
         } catch (e) {
           console.error('Failed to render resume PDF from markdown, falling back to original:', e)
           if (latestDoc) {
@@ -134,7 +133,10 @@ export const useResumeStore = create<ResumeState>()((set, get) => ({
               })) as Blob
               const state = get()
               if (state.fileBlobUrl) URL.revokeObjectURL(state.fileBlobUrl)
-              set({ fileBlobUrl: URL.createObjectURL(fallbackBlob), fileName: latestDoc.original_name })
+              set({
+                fileBlobUrl: URL.createObjectURL(fallbackBlob),
+                fileName: latestDoc.original_name
+              })
             } catch (e2) {
               console.error('Failed to load original PDF:', e2)
             }

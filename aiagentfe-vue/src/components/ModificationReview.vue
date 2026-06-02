@@ -6,7 +6,9 @@
         <span
           ><strong>{{ item.field }}</strong></span
         >
-        <div v-if="item.reason" class="mod-reason">{{ item.reason }}</div>
+        <div v-if="item.reason" class="mod-reason">
+          {{ item.reason }}
+        </div>
       </div>
       <div class="modification-content">
         <div class="mod-label">修改前：</div>

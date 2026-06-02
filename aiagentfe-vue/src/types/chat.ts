@@ -22,5 +22,5 @@ export interface Message {
   createdAt?: number
   optimizations?: OptimizationItem[]
   modifications?: ModificationItem[]
-  isProcessing?: boolean
+  status?: 'streaming' | 'completed' | 'interrupted'
 }

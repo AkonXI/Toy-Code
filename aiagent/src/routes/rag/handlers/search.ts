@@ -1,39 +1,29 @@
-import { Router, Request, Response } from "express";
-import { upload, MulterFile } from "../utils";
-import { performSearch } from "../services/perform-search";
-import { createAuthMiddleware } from "../../../auth/token";
+import { Router, Request, Response } from 'express'
+import { upload, MulterFile } from '../utils'
+import { performSearch } from '../services/perform-search'
+import { createAuthMiddleware } from '../../../auth/token'
 
-const authMiddleware = createAuthMiddleware();
-const router: Router = Router();
+const authMiddleware = createAuthMiddleware()
+const router: Router = Router()
 
 router.post(
-  "/search",
+  '/search',
   authMiddleware,
-  upload.array("files"),
+  upload.array('files'),
   async (req: Request, res: Response) => {
     try {
-      const {
-        query,
-        content,
-        url,
-        k,
-        useSystemDocs,
-        conversationId,
-        messages,
-      } = req.body;
+      const { query, content, url, k, useSystemDocs, conversationId, messages, userMsgId, assistantMsgId } = req.body
 
-      let extractedQuery = query;
+      let extractedQuery = query
       if (!extractedQuery && messages) {
-        const lastUserMessage = messages
-          .filter((m: any) => m.role === "user")
-          .pop();
+        const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()
         extractedQuery =
-          lastUserMessage?.parts?.find((p: any) => p.type === "text")?.text ||
+          lastUserMessage?.parts?.find((p: any) => p.type === 'text')?.text ||
           lastUserMessage?.content ||
-          "";
+          ''
       }
 
-      const files = req.files as MulterFile[] | undefined;
+      const files = req.files as MulterFile[] | undefined
 
       await performSearch(
         {
@@ -44,15 +34,17 @@ router.post(
           k,
           useSystemDocs,
           conversationId,
+          userMsgId,
+          assistantMsgId
         },
         res,
-        req,
-      );
+        req
+      )
     } catch (error) {
-      console.error("Error searching:", error);
-      res.status(500).json({ error: "Failed to search" });
+      console.error('Error searching:', error)
+      res.status(500).json({ error: 'Failed to search' })
     }
-  },
-);
+  }
+)
 
-export default router;
+export default router

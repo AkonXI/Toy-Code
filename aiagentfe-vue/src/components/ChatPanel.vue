@@ -80,8 +80,21 @@
         >
           <div class="message-bubble">
             <template v-if="msg.role === 'assistant'">
-              <span v-if="msg.content" class="msg-text" :class="msg.isProcessing ? '[&>:last-child]:after:content-[\"▊\"] [&>:last-child]:after:animate-pulse' : ''" v-html="parseMarkdown(msg.content)"></span>
-              <div v-else-if="isLoading" class="loading-spinner">
+              <span
+                v-if="msg.content"
+                class="msg-text"
+                :class="msg.status === 'streaming' ? 'processing-cursor' : ''"
+                v-html="parseMarkdown(msg.content)"
+              />
+              <span
+                v-if="msg.status === 'interrupted' || (!msg.content && !isLoading)"
+                class="interrupted-text"
+                >被中断</span
+              >
+              <div
+                v-if="!msg.content && isLoading && msg.status !== 'interrupted'"
+                class="loading-spinner"
+              >
                 <el-icon class="is-loading">
                   <Loading />
                 </el-icon>
@@ -107,7 +120,11 @@
 
           <div
             v-if="msg.showReasoning && msg.reasoning"
-            :ref="(el) => { if (el) reasoningBoxRefs.set(String(msg.id), el as HTMLElement) }"
+            :ref="
+              (el) => {
+                if (el) reasoningBoxRefs.set(String(msg.id), el as HTMLElement)
+              }
+            "
             class="reasoning-box"
             @scroll="(e) => onReasoningScroll(String(msg.id), e)"
           >
@@ -182,66 +199,66 @@
       </div>
       <div class="input-actions">
         <div class="flex items-center gap-2">
-        <button class="attach-btn" @click="fileInputRef?.click()" title="上传参考资料">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
-            />
-          </svg>
-        </button>
-        <button class="ref-drawer-btn" @click="showRefDrawer = true" title="参考资料">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <polyline points="10 9 9 9 8 9" />
-          </svg>
-          <span class="ref-btn-text">参考资料</span>
-        </button>
+          <button class="attach-btn" @click="fileInputRef?.click()" title="上传参考资料">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+              />
+            </svg>
+          </button>
+          <button class="ref-drawer-btn" @click="showRefDrawer = true" title="参考资料">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <span class="ref-btn-text">参考资料</span>
+          </button>
         </div>
         <div class="flex items-center gap-1.5">
-        <button
-          v-if="isSearchProcessing"
-          class="send-btn stop-btn"
-          @click="$emit('stop')"
-          title="停止生成并清空队列"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-            <rect x="5" y="5" width="14" height="14" rx="2" />
-          </svg>
-        </button>
-        <button
-          class="send-btn"
-          :disabled="!input.trim() && selectedFiles.length === 0"
-          @click="sendMsg"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+          <button
+            v-if="isSearchProcessing"
+            class="send-btn stop-btn"
+            title="停止生成并清空队列"
+            @click="$emit('stop')"
           >
-            <path d="M22 2L11 13" />
-            <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-          </svg>
-        </button>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+              <rect x="5" y="5" width="14" height="14" rx="2" />
+            </svg>
+          </button>
+          <button
+            class="send-btn"
+            :disabled="!input.trim() && selectedFiles.length === 0"
+            @click="sendMsg"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M22 2L11 13" />
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -283,7 +300,11 @@ import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 
 function parseMarkdown(text: string): string {
-  try { return (marked.parse(text, { async: false }) as string) || text } catch { return text }
+  try {
+    return (marked.parse(text, { async: false }) as string) || text
+  } catch {
+    return text
+  }
 }
 import OptimizationCard from './OptimizationCard.vue'
 import ModificationReview from './ModificationReview.vue'
@@ -511,11 +532,16 @@ function scrollReasoningToBottom(msgId: string) {
 }
 
 watch(
-  () => props.messages.map(m => ({ id: m.id, reasoning: m.reasoning, showReasoning: m.showReasoning })),
+  () =>
+    props.messages.map((m) => ({
+      id: m.id,
+      reasoning: m.reasoning,
+      showReasoning: m.showReasoning
+    })),
   (newMsgs, oldMsgs) => {
     for (const msg of newMsgs) {
       if (!msg.id || !msg.showReasoning || !msg.reasoning) continue
-      const old = oldMsgs?.find(m => m.id === msg.id)
+      const old = oldMsgs?.find((m) => m.id === msg.id)
       if (!old) {
         reasoningAutoScroll[String(msg.id)] = true
       }
@@ -617,8 +643,12 @@ defineExpose({
   max-width: 100%;
 }
 
-.message-bubble :deep(p) { margin: 0; }
-.message-bubble :deep(p + p) { margin-top: 0.4em; }
+.message-bubble :deep(p) {
+  margin: 0;
+}
+.message-bubble :deep(p + p) {
+  margin-top: 0.4em;
+}
 
 .message-item.user .message-bubble {
   background: #409eff;
@@ -1063,5 +1093,21 @@ defineExpose({
 .queue-cancel-btn:hover {
   background: #e0e0e0;
   color: #e74c3c;
+}
+
+.interrupted-text {
+  color: #999;
+  font-size: 12px;
+}
+
+.processing-cursor :deep(:last-child)::after {
+  content: '▊';
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 </style>

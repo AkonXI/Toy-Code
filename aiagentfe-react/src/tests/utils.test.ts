@@ -303,6 +303,7 @@ describe('Scene 2 - accept / supplement / reject', () => {
 
   it('supplementCount resets on new search', () => {
     let supplementCount = 2
+    expect(supplementCount).toBe(2)
     supplementCount = 0
     expect(supplementCount).toBe(0)
   })
@@ -418,6 +419,7 @@ describe('Message queue', () => {
 
   it('resets supplementCount on new search', () => {
     let supplementCount = 3
+    expect(supplementCount).toBe(3)
     supplementCount = 0
     expect(supplementCount).toBe(0)
   })

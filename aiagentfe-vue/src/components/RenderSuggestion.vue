@@ -1,6 +1,10 @@
 <template>
   <div>
-    <div v-for="(block, bi) in blocks" :key="bi" :class="block.type === 'list' ? 'flex gap-1.5 mb-0.5' : 'mb-1.5 leading-[1.6]'">
+    <div
+      v-for="(block, bi) in blocks"
+      :key="bi"
+      :class="block.type === 'list' ? 'flex gap-1.5 mb-0.5' : 'mb-1.5 leading-[1.6]'"
+    >
       <span v-if="block.type === 'list'" class="shrink-0">•</span>
       <span>
         <template v-for="(seg, si) in block.segs" :key="si">
@@ -25,8 +29,7 @@ function parseInlineStyle(styleStr: string): Record<string, any> {
     if (k === 'font-size') {
       const n = parseFloat(v)
       result.fontSize = (v.endsWith('em') ? Math.round(n * 10) : n) + 'px'
-    }
-    else if (k === 'color') result.color = v
+    } else if (k === 'color') result.color = v
     else if (k === 'font-weight' && v === 'bold') result.fontWeight = 'bold'
     else if (k === 'background-color') result.backgroundColor = v
     else if (k === 'text-decoration') result.textDecoration = v === 'underline' ? 'underline' : v
@@ -67,7 +70,10 @@ function pushBold(segments: { t: string; b?: boolean; s?: Record<string, any> }[
 }
 
 const blocks = computed(() => {
-  const result: { type: 'para' | 'list'; segs: { t: string; b?: boolean; s?: Record<string, any> }[] }[] = []
+  const result: {
+    type: 'para' | 'list'
+    segs: { t: string; b?: boolean; s?: Record<string, any> }[]
+  }[] = []
   for (const block of props.text.split('\n\n')) {
     const trimmed = block.trim()
     if (!trimmed) continue

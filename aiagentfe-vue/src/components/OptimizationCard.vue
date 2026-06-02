@@ -8,14 +8,16 @@
         采纳
       </el-button>
     </div>
-    <div v-if="item.reason" class="opt-reason">{{ item.reason }}</div>
+    <div v-if="item.reason" class="opt-reason">
+      {{ item.reason }}
+    </div>
     <div class="ref-doc-content">
       <div class="ref-doc-label">原文：</div>
       <div class="ref-doc-text original-text">
         <RenderSuggestion :text="item.current" />
       </div>
       <div class="ref-doc-label">建议：</div>
-      <div class="ref-doc-text">
+      <div class="ref-doc-text suggestion-text">
         <RenderSuggestion :text="item.suggestion" />
       </div>
     </div>
@@ -85,6 +87,15 @@ defineEmits<{
   padding: 8px;
   border-radius: 4px;
   border: 1px solid #ffd0c8;
+  -webkit-line-clamp: initial;
+  display: block;
+}
+
+.suggestion-text {
+  background: #e6f7ff;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #91d5ff;
   -webkit-line-clamp: initial;
   display: block;
 }

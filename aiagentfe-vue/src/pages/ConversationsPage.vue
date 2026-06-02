@@ -182,7 +182,7 @@ async function handleUpload() {
     { max: 55, text: '正在解析为结构化格式...' },
     { max: 80, text: '正在构建索引...' },
     { max: 93, text: '即将完成...' },
-    { max: 99.5, text: '最后处理中...' },
+    { max: 99.5, text: '最后处理中...' }
   ]
 
   uploadProgressTimer = setInterval(() => {
@@ -206,7 +206,10 @@ async function handleUpload() {
     if (uploadProgressTimer) clearInterval(uploadProgressTimer)
     uploadStatusText.value = '解析完成'
     const animateTo100 = () => {
-      if (uploadProgress.value >= 99.9) { uploadProgress.value = 100; return }
+      if (uploadProgress.value >= 99.9) {
+        uploadProgress.value = 100
+        return
+      }
       uploadProgress.value += Math.max(0.5, (100 - uploadProgress.value) / 8)
       requestAnimationFrame(animateTo100)
     }

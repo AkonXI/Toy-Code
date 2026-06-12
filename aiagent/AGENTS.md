@@ -1,6 +1,6 @@
 # aiagent
 
-Express + AI SDK v6 + LangChain + DeepSeek + LanceDB
+Express + AI SDK v6 + LangChain + DeepSeek + Qdrant
 
 ## Important
 
@@ -16,6 +16,7 @@ Express + AI SDK v6 + LangChain + DeepSeek + LanceDB
 npm run dev       # nodemon + tsx, watches src/
 npm run build     # tsc → dist/
 npm start         # node dist/index.js
+npm run qdrant    # qdrant/qdrant.exe --config-path config/config.yaml
 npm test          # vitest --run
 npm test:watch    # vitest watch
 ```
@@ -43,22 +44,23 @@ src/
         summarize.ts    # POST /rag/summarize
       services/         # Business logic (no route registration)
         perform-search.ts  # SSE orchestration: auth → context → intent → streamText
-        rag-context.ts     # Chunk/file/URL loading + tempDir lifecycle
+        rag-context.ts     # Chunk/file/URL loading + user doc search + tempDir lifecycle
         intent.ts          # Intent classification (建议/修改/追问)
         tools.ts           # updateResumeTool + proposeModificationTool
     conversation/       # GET/POST/DELETE conversations + messages
-    user/               # GET /user/profile
+    user/               # GET /user/profile + /user/documents CRUD
     admin/              # System knowledge base CRUD (+ PATCH active)
   lib/
     providers.ts        # ChatDeepSeek + embedding (Redis + 内存 LRU 双级缓存) + p-retry
     prompts.ts          # ChatPromptTemplate + XML 标签结构化注入防御
     resume-pdfmaker.ts  # PDF generation (pdfmake + SourceHanSansSC)
     resume-markdown.ts  # replaceText (4-level matching), modifySection
-    vector-db.ts        # LanceDB index（ANN IVF_PQ）/ search / delete
+    vector-db.ts        # Qdrant client (system_chunks + user_chunks 双集合) / search / delete
     pagination.ts       # Shared pagination utility
     document-loader.ts  # DocumentLoader（文档加载+分块+页码元数据，零检索）
+    redis.ts            # Redis client (auto-connect, dotenv.config)
   auth/                 # Login, logout, token middleware, captcha
-  storage/              # schema.sql + repository + file-manager + summary-manager
+  storage/              # schema.sql + database + repository + file-manager + summary-manager
 ```
 
 ## Key Dependencies
@@ -68,7 +70,7 @@ src/
 | `@ai-sdk/deepseek` | Main search (reasoning + SSE + tools, maxRetries: 3) |
 | `@langchain/core` | StructuredOutputParser, ChatPromptTemplate |
 | `@langchain/deepseek` | Offline LLM calls (p-retry 3次指数退避) |
-| `@lancedb/lancedb` | System-level vector DB (ANN IVF_PQ) |
+| `@qdrant/js-client-rest` | Vector DB (user_chunks + system_chunks 集合) |
 | `@huggingface/transformers` | `Xenova/bge-small-zh-v1.5` embedding |
 
 
@@ -85,6 +87,7 @@ src/
 - **Streaming**: SSE `onStepFinish` 事务包裹 (首次 INSERT + 后续 UPDATE)
 - **Prompt Defense**: XML `<user_query>` 标签结构化注入防御
 - **Chunk Tracking**: `chunks.ref_id` 直标（无需中间映射表），软删除 + 页码元数据
+- **User Documents**: POST/GET/DELETE/PATCH /user/documents, Qdrant 向量索引, RAG 上下文集成
 
 ## LLM Architecture
 
@@ -109,6 +112,10 @@ src/
 | DELETE | `/rag/docs/:refId` | Yes | Delete document |
 | POST | `/rag/docs/:refId/restore` | Yes | Restore historical version |
 | GET | `/rag/docs/:refId/download` | Yes | Download document file |
+| GET | `/user/documents` | Yes | List user uploaded documents |
+| POST | `/user/documents` | Yes | Upload document to user library |
+| DELETE | `/user/documents/:id` | Yes | Delete user document + Qdrant vectors |
+| PATCH | `/user/documents/:id` | Yes | Toggle document active/inactive |
 
 ## Testing
 

@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon",
+    "qdrant": "qdrant\\qdrant.exe --config-path config\\config.yaml",
     "build": "tsc && node -e \"const fs=require('fs');fs.cpSync('src/storage/schema.sql','dist/storage/schema.sql');fs.cpSync('fonts','dist/fonts',{recursive:true})\"",
     "start": "node dist/index.js",
     "test": "vitest --run",
@@ -17,13 +18,13 @@
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.32",
     "@huggingface/transformers": "^4.2.0",
-    "@lancedb/lancedb": "^0.27.2",
+    "@qdrant/js-client-rest": "^1.14.1",
     "@langchain/core": "^1.1.46",
     "@langchain/deepseek": "^1.0.25",
     "@langchain/textsplitters": "^1.0.1",
     "@napi-rs/canvas": "^1.0.0",
     "ai": "^6.0.168",
-    "apache-arrow": "^18.1.0",
+
     "better-sqlite3": "^12.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

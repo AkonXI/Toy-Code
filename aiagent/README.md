@@ -7,7 +7,7 @@ AI 简历优化后端 —— 上传简历，让 DeepSeek 大模型分析并给�
 - **运行时:** Node.js, TypeScript
 - **框架:** Express 5
 - **AI SDK:** Vercel AI SDK v6 + LangChain（@ai-sdk/deepseek + @langchain/deepseek）
-- **向量数据库:** LanceDB（ANN IVF_PQ 索引）
+- **向量数据库:** Qdrant（用户文档 + 系统知识库双集合）
 - **嵌入模型:** @huggingface/transformers（Xenova/bge-small-zh-v1.5）
 - **数据库:** SQLite（better-sqlite3）
 - **缓存:** Redis（ioredis）+ 内存 LRU fallback
@@ -21,7 +21,7 @@ AI 简历优化后端 —— 上传简历，让 DeepSeek 大模型分析并给�
 - 流式 AI 对话（含推理过程展示）
 - 双工具系统：优化建议 + 具体修改
 - 对话自动摘要
-- 系统知识库向量检索
+- 系统知识库 + 用户文档库向量检索
 
 ## 快速开始
 
@@ -35,6 +35,12 @@ npm install
 DEEPSEEK_API_KEY=你的API密钥
 # 可选: REDIS_HOST=localhost REDIS_PORT=6379
 # 可选: LOG_LEVEL=debug
+```
+
+启动 Qdrant（需先下载 qdrant.exe 到 qdrant/ 目录）：
+
+```bash
+npm run qdrant      # qdrant/qdrant.exe --config-path config/config.yaml
 ```
 
 ```bash

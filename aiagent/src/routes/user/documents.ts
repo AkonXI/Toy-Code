@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express'
-
 import multer from 'multer'
 import path from 'path'
 import crypto from 'crypto'
 import fs from 'fs'
 import { DocumentLoader } from '../../lib/document-loader'
-import { createAuthMiddleware } from '../../auth/token'
+import { createAuthWithUserMiddleware } from '../../auth/token'
 import {
   getGlobalDocByHash,
   createGlobalDoc,
@@ -13,16 +12,15 @@ import {
   decrementGlobalDocRefCount,
   getGlobalDocRefCount,
   deleteGlobalDoc,
-  createSystemDoc,
-  getSystemDoc,
-  getSystemDocWithFilePath,
-  listSystemDocs,
-  deleteSystemDoc,
-  updateSystemDocActive
+  createUserDoc,
+  listUserDocs,
+  getUserDoc,
+  deleteUserDoc,
+  updateUserDocActive
 } from '../../storage/repository'
 
 const router: Router = Router()
-const authMiddleware = createAuthMiddleware()
+const authWithUser = createAuthWithUserMiddleware()
 const upload = multer({ storage: multer.memoryStorage() })
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'documents', 'by_hash')
@@ -31,18 +29,16 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 router.post(
-  '/system-documents',
-  authMiddleware,
+  '/documents',
+  authWithUser,
   upload.single('file'),
   async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).userId as number
       const { docType, category } = req.body
+
       if (!docType || !['excellent_resume', 'reference_doc'].includes(docType)) {
         res.status(400).json({ error: 'docType must be excellent_resume or reference_doc' })
-        return
-      }
-      if (!category) {
-        res.status(400).json({ error: 'category is required' })
         return
       }
 
@@ -55,7 +51,6 @@ router.post(
       // 修复中文文件名乱码
       const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8')
 
-      // 提取文本
       let fileContent = file.buffer.toString('utf-8')
       if (originalName.toLowerCase().endsWith('.pdf')) {
         const { PDFParse } = await import('pdf-parse')
@@ -69,7 +64,6 @@ router.post(
         return
       }
 
-      // 物理存储 + global_documents
       const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex')
       const ext = originalName.toLowerCase().endsWith('.pdf') ? 'pdf' : 'txt'
       const fileName = `${fileHash}.${ext}`
@@ -87,57 +81,63 @@ router.post(
         globalDocId = createGlobalDoc(fileHash, filePath, originalName, ext, file.buffer.length)
       }
 
-      // 写入 system_documents
-      createSystemDoc(globalDocId, docType, category, originalName)
+      createUserDoc(userId, globalDocId, docType, category || null, originalName)
 
-      // 分块 + 索引到向量库
       const rag = new DocumentLoader()
       await rag.loadDocumentsFromText([
-        { text: fileContent, metadata: { source: originalName, file_type: 'system' } }
+        { text: fileContent, metadata: { source: originalName, file_type: 'user' } }
       ])
       if (rag.chunks.length > 0) {
-        const { indexSystemDocumentChunks } = await import('../../lib/vector-db')
-        await indexSystemDocumentChunks(
+        const { indexUserDocumentChunks } = await import('../../lib/vector-db')
+        await indexUserDocumentChunks(
+          userId,
           globalDocId,
           rag.chunks.map((c, i) => ({ pageContent: c.pageContent, chunkIndex: i })),
           docType,
-          category
+          category || undefined
         )
       }
 
       res.json({
-        message: 'System document uploaded',
+        message: 'User document uploaded',
         globalDocId,
         chunksCount: rag.chunks.length
       })
     } catch (error) {
-      console.error('Error uploading system document:', error)
-      res.status(500).json({ error: 'Failed to upload system document' })
+      console.error('Error uploading user document:', error)
+      res.status(500).json({ error: 'Failed to upload user document' })
     }
   }
 )
 
-router.delete('/system-documents/:id', authMiddleware, async (req: Request, res: Response) => {
+router.get('/documents', authWithUser, async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId as number
+    const rows = listUserDocs(userId)
+    res.json({ data: rows })
+  } catch (error) {
+    console.error('Error listing user documents:', error)
+    res.status(500).json({ error: 'Failed to list user documents' })
+  }
+})
+
+router.delete('/documents/:id', authWithUser, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId as number
     const id = parseInt(req.params.id as string)
 
-    const doc = getSystemDocWithFilePath(id)
+    const doc = getUserDoc(id, userId)
     if (!doc) {
-      res.status(404).json({ error: 'System document not found' })
+      res.status(404).json({ error: 'User document not found' })
       return
     }
 
-    // 清理向量库
-    const { deleteSystemChunks } = await import('../../lib/vector-db')
-    await deleteSystemChunks(doc.global_doc_id)
+    const { deleteUserChunks } = await import('../../lib/vector-db')
+    await deleteUserChunks(userId, doc.global_doc_id)
 
-    // 删除关联记录
-    deleteSystemDoc(id)
-
-    // 递减引用计数
+    deleteUserDoc(id)
     decrementGlobalDocRefCount(doc.global_doc_id)
 
-    // 引用归零时删除物理文件
     const refCount = getGlobalDocRefCount(doc.global_doc_id)
     if (refCount <= 0) {
       if (fs.existsSync(doc.file_path)) {
@@ -146,57 +146,34 @@ router.delete('/system-documents/:id', authMiddleware, async (req: Request, res:
       deleteGlobalDoc(doc.global_doc_id)
     }
 
-    res.json({ message: 'System document deleted' })
+    res.json({ message: 'User document deleted' })
   } catch (error) {
-    console.error('Error deleting system document:', error)
-    res.status(500).json({ error: 'Failed to delete system document' })
+    console.error('Error deleting user document:', error)
+    res.status(500).json({ error: 'Failed to delete user document' })
   }
 })
 
-// 获取系统文档列表
-router.get('/system-documents', authMiddleware, async (req: Request, res: Response) => {
+router.patch('/documents/:id', authWithUser, async (req: Request, res: Response) => {
   try {
-    const rows = listSystemDocs()
-    res.json({ data: rows })
-  } catch (error) {
-    console.error('Error listing system documents:', error)
-    res.status(500).json({ error: 'Failed to list system documents' })
-  }
-})
-
-// 获取单个系统文档详情
-router.get('/system-documents/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const id = parseInt(req.params.id as string)
-    const row = getSystemDoc(id)
-    if (!row) {
-      res.status(404).json({ error: 'System document not found' })
-      return
-    }
-    res.json({ data: row })
-  } catch (error) {
-    console.error('Error fetching system document:', error)
-    res.status(500).json({ error: 'Failed to fetch system document' })
-  }
-})
-
-router.patch('/system-documents/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
+    const userId = (req as any).userId as number
     const id = parseInt(req.params.id as string, 10)
     const { active } = req.body
+
     if (active !== 0 && active !== 1) {
       res.status(400).json({ error: 'active must be 0 or 1' })
       return
     }
-    const changes = updateSystemDocActive(id, active)
+
+    const changes = updateUserDocActive(id, userId, active)
     if (changes === 0) {
-      res.status(404).json({ error: 'System document not found' })
+      res.status(404).json({ error: 'User document not found' })
       return
     }
+
     res.json({ data: { id, active } })
   } catch (error) {
-    console.error('Error updating system document:', error)
-    res.status(500).json({ error: 'Failed to update system document' })
+    console.error('Error updating user document:', error)
+    res.status(500).json({ error: 'Failed to update user document' })
   }
 })
 

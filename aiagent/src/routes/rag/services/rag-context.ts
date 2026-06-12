@@ -31,14 +31,13 @@ export async function buildRagContext(
     content?: string
     files?: MulterFile[]
     url?: string
-    useSystemDocs: boolean
     conversationId?: string
-    systemRAG: DocumentLoader
+    userId?: number
   },
   res: Response,
   req: Request
 ): Promise<RagContext | null> {
-  const { query, content, files, url, useSystemDocs, conversationId, systemRAG } = params
+  const { query, content, files, url, conversationId, userId } = params
 
   const rag = new DocumentLoader({ chunkSize: 1000, chunkOverlap: 200 })
   const tempDir = path.join(process.cwd(), 'temp', Date.now().toString())
@@ -126,7 +125,25 @@ export async function buildRagContext(
             }
           }
         } catch (e) {
-          console.error('[vector-db] search error:', e)
+          console.error('[vector-db] search system error:', e)
+        }
+
+        if (userId) {
+          try {
+            const { searchUserChunks } = await import('../../../lib/vector-db')
+            const userResults = await searchUserChunks(query, userId, 3)
+            if (userResults.length > 0) {
+              const userText =
+                '【我的知识库相关参考】\n' + userResults.map((r) => r.text).join('\n\n')
+              if (referenceDocContent) {
+                referenceDocContent += '\n\n' + userText
+              } else {
+                referenceDocContent = userText
+              }
+            }
+          } catch (e) {
+            console.error('[vector-db] search user error:', e)
+          }
         }
       } else {
         const conversationDocs = await getConversationDocs(conversationId)
@@ -230,12 +247,6 @@ export async function buildRagContext(
         await rag.loadDocumentsFromText([{ text, metadata: { source: url } }])
       } finally {
         clearTimeout(timeout)
-      }
-    }
-
-    if (useSystemDocs) {
-      for (const chunk of [...systemRAG.chunks]) {
-        rag.chunks.push(chunk)
       }
     }
 

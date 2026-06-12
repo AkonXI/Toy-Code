@@ -101,6 +101,20 @@ CREATE TABLE IF NOT EXISTS system_documents (
   FOREIGN KEY (global_doc_id) REFERENCES global_documents(id)
 );
 
+-- 用户级文档库（用户私有，向量化后用于 RAG）
+CREATE TABLE IF NOT EXISTS user_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  global_doc_id INTEGER NOT NULL,
+  doc_type TEXT NOT NULL CHECK(doc_type IN ('excellent_resume', 'reference_doc')),
+  category TEXT,
+  local_name TEXT NOT NULL,
+  active INTEGER DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (global_doc_id) REFERENCES global_documents(id)
+);
+
 -- 会话摘要缓存表
 CREATE TABLE IF NOT EXISTS conversation_summaries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,3 +139,5 @@ CREATE INDEX IF NOT EXISTS idx_global_docs_hash ON global_documents(file_hash);
 CREATE INDEX IF NOT EXISTS idx_conv_doc_refs_conversation ON conversation_document_refs(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_conv_doc_refs_global ON conversation_document_refs(global_doc_id);
 CREATE INDEX IF NOT EXISTS idx_conv_summaries_conversation ON conversation_summaries(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_user_documents_user ON user_documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_documents_global ON user_documents(global_doc_id);

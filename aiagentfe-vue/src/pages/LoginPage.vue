@@ -148,6 +148,7 @@ async function handleSubmit() {
         const data = (await response.json()) as { token: string; username: string }
         localStorage.setItem(TOKEN_KEY, data.token)
         localStorage.setItem(PHONE_KEY, form.phone)
+        window.dispatchEvent(new Event('auth-change'))
         ElMessage.success('登录成功')
         router.push('/conversations')
       } catch (e) {

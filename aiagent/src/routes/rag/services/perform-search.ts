@@ -2,7 +2,6 @@ import { Request, Response } from 'express'
 import { streamText, stepCountIs } from 'ai'
 import { deepseek, DEFAULT_MODEL, getChatModel } from '../../../lib/providers'
 import { buildSearchPrompt, buildTitlePrompt } from '../../../lib/prompts'
-import { DocumentLoader } from '../../../lib/document-loader'
 import {
   getConversationTitle,
   updateConversationTitle,
@@ -14,35 +13,6 @@ import { extractUserId, MulterFile } from '../utils'
 import { classifyIntent } from './intent'
 import { buildRagContext } from './rag-context'
 import { updateResumeTool, proposeModificationTool } from './tools'
-import fs from 'fs'
-import path from 'path'
-
-const docsDir = path.join(process.cwd(), 'docs')
-if (!fs.existsSync(docsDir)) {
-  fs.mkdirSync(docsDir, { recursive: true })
-}
-
-const systemRAG = new DocumentLoader({ chunkSize: 1000, chunkOverlap: 200 })
-
-async function initSystemRAG(retries = 3, delay = 2000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const files = fs.readdirSync(docsDir)
-      if (files.length > 0) {
-        await systemRAG.loadDocuments(docsDir)
-        console.log(`System RAG initialized with ${files.length} documents`)
-      } else {
-        console.log('System RAG: no documents found, skipping initialization')
-      }
-      return
-    } catch (error) {
-      console.error(`System RAG init attempt ${i + 1}/${retries} failed:`, error)
-      if (i < retries - 1) await new Promise((r) => setTimeout(r, delay))
-    }
-  }
-}
-
-initSystemRAG()
 
 export async function performSearch(
   reqBody: {
@@ -51,7 +21,6 @@ export async function performSearch(
     files?: MulterFile[]
     k?: number
     url?: string
-    useSystemDocs?: boolean
     conversationId?: string
     userMsgId?: string
     assistantMsgId?: string
@@ -59,15 +28,16 @@ export async function performSearch(
   res: Response,
   req: Request
 ) {
-  const { query, content, files, url, useSystemDocs = true, conversationId, userMsgId, assistantMsgId } = reqBody
+  const { query, content, files, url, conversationId, userMsgId, assistantMsgId } = reqBody
 
   if (!query) {
     res.status(400).json({ error: 'query is required' })
     return
   }
 
+  const userId = await extractUserId(req)
+
   if (conversationId) {
-    const userId = await extractUserId(req)
     if (!userId) {
       res.status(401).json({ error: 'Authentication failed' })
       return
@@ -93,7 +63,14 @@ export async function performSearch(
   }
 
   const context = await buildRagContext(
-    { query, content, files, url, useSystemDocs, conversationId, systemRAG },
+    {
+      query,
+      content,
+      files,
+      url,
+      conversationId,
+      userId: userId ?? undefined
+    },
     res,
     req
   )
@@ -148,10 +125,11 @@ export async function performSearch(
         userMsgId
           ? 'INSERT INTO messages (conversation_id, role, content, client_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)'
           : 'INSERT INTO messages (conversation_id, role, content, created_at) VALUES (?, ?, ?, ?)'
-      ).run(...(userMsgId
-        ? [conversationId, 'user', query, userMsgId, 'completed', Date.now()]
-        : [conversationId, 'user', query, Date.now()]
-      ))
+      ).run(
+        ...(userMsgId
+          ? [conversationId, 'user', query, userMsgId, 'completed', Date.now()]
+          : [conversationId, 'user', query, Date.now()])
+      )
 
       if (assistantMsgId) {
         db.prepare(
@@ -170,15 +148,22 @@ export async function performSearch(
   }
 
   let isAborted = false
-  req.on('close', () => { isAborted = true })
+  req.on('close', () => {
+    isAborted = true
+  })
   res.on('close', () => {
     isAborted = true
     if (dbAssistantMsgId) {
       try {
         const db = getDatabase()
-        const row = db.prepare('SELECT status FROM messages WHERE client_id = ?').get(dbAssistantMsgId) as any
+        const row = db
+          .prepare('SELECT status FROM messages WHERE client_id = ?')
+          .get(dbAssistantMsgId) as any
         if (row && row.status === 'streaming') {
-          db.prepare('UPDATE messages SET status = ? WHERE client_id = ?').run('interrupted', dbAssistantMsgId)
+          db.prepare('UPDATE messages SET status = ? WHERE client_id = ?').run(
+            'interrupted',
+            dbAssistantMsgId
+          )
         }
       } catch (e) {
         console.error('Failed to mark message interrupted:', e)
@@ -220,13 +205,13 @@ export async function performSearch(
                 if (conversationId && dbAssistantMsgId) {
                   const db = getDatabase()
                   if (isAborted) {
-                    db.prepare('UPDATE messages SET content = ?, reasoning = ? WHERE client_id = ?').run(
-                      accContent, accReasoning, dbAssistantMsgId
-                    )
+                    db.prepare(
+                      'UPDATE messages SET content = ?, reasoning = ? WHERE client_id = ?'
+                    ).run(accContent, accReasoning, dbAssistantMsgId)
                   } else {
-                    db.prepare('UPDATE messages SET content = ?, reasoning = ?, status = ? WHERE client_id = ?').run(
-                      accContent, accReasoning, 'streaming', dbAssistantMsgId
-                    )
+                    db.prepare(
+                      'UPDATE messages SET content = ?, reasoning = ?, status = ? WHERE client_id = ?'
+                    ).run(accContent, accReasoning, 'streaming', dbAssistantMsgId)
                   }
                 }
               }
@@ -237,8 +222,13 @@ export async function performSearch(
         if (conversationId && dbAssistantMsgId) {
           try {
             const db = getDatabase()
-            db.prepare('UPDATE messages SET content = ?, reasoning = ?, status = ? WHERE client_id = ?').run(
-              accContent, accReasoning, isAborted ? 'interrupted' : 'completed', dbAssistantMsgId
+            db.prepare(
+              'UPDATE messages SET content = ?, reasoning = ?, status = ? WHERE client_id = ?'
+            ).run(
+              accContent,
+              accReasoning,
+              isAborted ? 'interrupted' : 'completed',
+              dbAssistantMsgId
             )
           } catch (e) {
             console.error('Failed to finalize messages:', e)

@@ -1,3 +1,10 @@
+import { env } from '@huggingface/transformers'
+
+// 设置 HuggingFace 镜像，必须在其他导入之前
+env.remoteHost = 'https://hf-mirror.com'
+env.allowRemoteModels = true
+env.allowLocalModels = true
+
 import { ChatDeepSeek } from '@langchain/deepseek'
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import { pipeline } from '@huggingface/transformers'

@@ -12,7 +12,7 @@ router.post(
   upload.array('files'),
   async (req: Request, res: Response) => {
     try {
-      const { query, content, url, k, useSystemDocs, conversationId, messages, userMsgId, assistantMsgId } = req.body
+      const { query, content, url, k, conversationId, messages, userMsgId, assistantMsgId } = req.body
 
       let extractedQuery = query
       if (!extractedQuery && messages) {
@@ -32,7 +32,6 @@ router.post(
           files,
           url,
           k,
-          useSystemDocs,
           conversationId,
           userMsgId,
           assistantMsgId

@@ -17,8 +17,14 @@ router.post('/login', async (req: Request, res: Response) => {
   let storedCaptcha: string | null = null
 
   if (redis && redis.status === 'ready') {
-    storedCaptcha = await redis.get(key)
-    if (storedCaptcha) {
+    const raw = await redis.get(key)
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw)
+        storedCaptcha = parsed.text
+      } catch {
+        storedCaptcha = raw
+      }
       await redis.del(key)
     }
   } else {

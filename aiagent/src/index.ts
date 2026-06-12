@@ -10,11 +10,6 @@ import { captchaCleanupInterval } from './auth/captcha'
 
 dotenv.config()
 
-// 强制 stdout 无缓冲（Windows 上 console.log 输出不刷新的问题）
-if (process.stdout.isTTY) {
-  ;(process.stdout as any)._handle?.setBlocking(true)
-}
-
 const app: Express = express()
 const port = process.env.PORT || 3000
 

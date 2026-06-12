@@ -2,9 +2,12 @@ import { Router, Request, Response } from 'express'
 
 import { createAuthWithUserMiddleware } from '../../auth/token'
 import { getUserByPhone } from '../../storage/repository'
+import documentsRouter from './documents'
 
 const router: Router = Router()
 const authWithUser = createAuthWithUserMiddleware()
+
+router.use(documentsRouter)
 
 router.get('/profile', authWithUser, async (req: Request, res: Response) => {
   try {

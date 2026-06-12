@@ -2,6 +2,20 @@
   <header class="app-header">
     <div class="header-left">
       <span class="logo" @click="goToConversations">简历优化助手</span>
+      <nav class="header-nav">
+        <span
+          class="nav-link"
+          :class="{ active: $route.path === '/conversations' }"
+          @click="goToConversations"
+          >会话</span
+        >
+        <span
+          class="nav-link"
+          :class="{ active: $route.path === '/documents' }"
+          @click="goToDocuments"
+          >知识库</span
+        >
+      </nav>
     </div>
     <div class="header-right">
       <span class="user-phone">{{ store.userInfo?.phone || '' }}</span>
@@ -26,6 +40,10 @@ onMounted(() => {
 
 function goToConversations() {
   router.push('/conversations')
+}
+
+function goToDocuments() {
+  router.push('/documents')
 }
 
 async function handleLogout() {
@@ -58,6 +76,11 @@ async function handleLogout() {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
 .header-left .logo {
   font-size: 16px;
   font-weight: 600;
@@ -67,6 +90,31 @@ async function handleLogout() {
 
 .header-left .logo:hover {
   color: #66b1ff;
+}
+
+.header-nav {
+  display: flex;
+  gap: 16px;
+  margin-left: 24px;
+}
+
+.nav-link {
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: #409eff;
+  background: #f0f7ff;
+}
+
+.nav-link.active {
+  color: #409eff;
+  font-weight: 500;
 }
 
 .header-right {

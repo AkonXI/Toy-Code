@@ -176,19 +176,16 @@ export function useEditorModifications() {
     modIdx: number,
     chatPanelRef: MutableRefObject<any>
   ) {
-    setSupplementCount((prev) => {
-      if (prev >= MAX_SUPPLEMENTS) {
-        message.warning(`最多补充${MAX_SUPPLEMENTS}次`)
-        return prev
-      }
-      markModDisabled(msgIdx, modIdx)
-      setCurrentSupplementField(item.field)
-      setCurrentSupplementOriginal(item.suggestion)
-      setCurrentSupplementMsgIndex(msgIdx)
-      setCurrentSupplementModIdx(modIdx)
-      chatPanelRef.current?.openSupplementDialog()
-      return prev + 1
-    })
+    if (supplementCount >= MAX_SUPPLEMENTS) {
+      message.warning(`最多补充${MAX_SUPPLEMENTS}次`)
+      return
+    }
+    markModDisabled(msgIdx, modIdx)
+    setCurrentSupplementField(item.field)
+    setCurrentSupplementOriginal(item.suggestion)
+    setCurrentSupplementMsgIndex(msgIdx)
+    setCurrentSupplementModIdx(modIdx)
+    chatPanelRef.current?.openSupplementDialog()
   }
 
   function submitSupplement(
@@ -198,6 +195,8 @@ export function useEditorModifications() {
       conversationId: string
       enqueueRequest: (...args: any[]) => void
       chatPanelRef: MutableRefObject<any>
+      setIsStreaming?: Dispatch<SetStateAction<boolean>>
+      setSupplementCount?: Dispatch<SetStateAction<number>>
     }
   ) {
     if (!text.trim()) return
@@ -206,6 +205,9 @@ export function useEditorModifications() {
       : `补充修改要求：${text}`
     const userMsgId = generateId()
     const assistantMsgId = generateId()
+    deps.setIsStreaming?.(true)
+    deps.setSupplementCount?.((prev: number) => prev + 1)
+    deps.chatPanelRef.current?.setInput?.('')
     deps.enqueueRequest(
       {
         type: 'search',

@@ -311,6 +311,12 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>((props, ref) => {
     }
   }
 
+  const MIME_TYPES = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain'
+  ]
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files) {
@@ -318,6 +324,10 @@ const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>((props, ref) => {
         const ext = file.name.split('.').pop()?.toLowerCase() || ''
         if (!['pdf', 'docx', 'txt'].includes(ext)) {
           message.warning(`不支持的文件格式: ${file.name}`)
+          continue
+        }
+        if (!MIME_TYPES.includes(file.type)) {
+          message.warning(`不支持的文件类型: ${file.name}`)
           continue
         }
         if (file.size > 10 * 1024 * 1024) {

@@ -33,6 +33,7 @@ npm run format    # Prettier format
 | `/conversations` | `ConversationsPage` | Yes | History list + upload |
 | `/editor/:id` | `EditorPage` | Yes | Resume editor + chat |
 | `/editor` | `EditorPage` | Yes | New conversation |
+| `/documents` | `DocumentLibraryPage` | Yes | User document library |
 
 ## Key Components
 
@@ -71,6 +72,7 @@ npm run format    # Prettier format
 - **Loading/Error UI**: EditorPage skeleton + error result + 重试按钮
 - **Apply/Accept**: `/rag/apply-modification` → PDF regenerate
 - **Supplement**: Open dialog, contextualized query construction
+- **User Documents**: 上传/启用/禁用/删除用户文档（DocumentLibraryPage）
 
 ## Testing
 

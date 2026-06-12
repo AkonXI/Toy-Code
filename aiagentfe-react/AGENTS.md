@@ -27,14 +27,24 @@ npm run format    # Prettier format
 - `@ai-sdk/react` for AI chat streaming
 - Path alias `@/` → `src/`
 
+## Routes
+
+| Path | Component | Auth | Description |
+| :--- | :--- | :--- | :--- |
+| `/` | `LoginPage` | No | Phone + captcha login |
+| `/conversations` | `ConversationsPage` | Yes | History list + upload |
+| `/editor/:id` | `EditorPage` | Yes | Resume editor + chat |
+| `/editor` | `EditorPage` | Yes | New conversation |
+| `/documents` | `DocumentLibraryPage` | Yes | User document library |
+
 ## Directory Structure
 
 ```
 src/
   api/           # Axios instance + API functions
-  components/    # Shared UI components
+  components/    # Shared UI components (ChatPanel, AppHeader, etc.)
   hooks/         # Custom React hooks
-  lib/           # Utilities (MultipartChatTransport, etc.)
+  lib/           # Utilities (MultipartChatTransport, RenderSuggestion, format, etc.)
   pages/         # Route pages
   router/        # React Router config
   stores/        # Zustand stores
@@ -42,6 +52,18 @@ src/
   types/         # TypeScript type definitions
   tests/         # Vitest tests
 ```
+
+## Key Components
+
+| Component | Purpose |
+| :--- | :--- |
+| `AppHeader` | Top bar: title, nav (会话/知识库), user, logout |
+| `ConversationDrawer` | Sidebar: conversation list |
+| `PdfPreview` | PDF preview + download + version restore |
+| `ChatPanel` | Messages + input + file + error + queue panel |
+| `OptimizationCard` | Suggestion card (updateResume) |
+| `ModificationReview` | Modification preview (proposeModification) |
+| `DocumentLibraryPage` | User document library CRUD |
 
 ## Key Dependencies
 
@@ -70,6 +92,9 @@ src/
 - **Loading/Error UI**: Skeleton + Result + 重试按钮
 - **Apply/Accept**: `/rag/apply-modification` → PDF regenerate
 - **Supplement**: Open dialog, `displayText` 字段对齐 Vue
+- **AppHeader Nav**: 会话/知识库导航链接，`useLocation` 高亮激活项
+- **File Upload MIME**: 文件扩展名 + MIME 类型双重校验
+- **User Documents**: 上传/启用/禁用/删除用户文档（POST/GET/DELETE/PATCH `/user/documents`）
 
 ## Testing
 

@@ -148,4 +148,43 @@ export async function renderResumePdf(markdown: string): Promise<Blob> {
   return response as unknown as Blob
 }
 
+export interface UserDocument {
+  id: number
+  global_doc_id: number
+  doc_type: string
+  category: string | null
+  local_name: string
+  active: number
+  created_at: number
+  file_type: string
+  file_size: number
+  original_name: string
+}
+
+export async function getUserDocuments(): Promise<{ data: UserDocument[] }> {
+  return service.get('/user/documents')
+}
+
+export async function uploadUserDocument(
+  file: File,
+  docType: string,
+  category?: string
+): Promise<{ message: string; globalDocId: number; chunksCount: number }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('docType', docType)
+  if (category) formData.append('category', category)
+  return service.post('/user/documents', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+export async function deleteUserDocument(id: number): Promise<void> {
+  return service.delete(`/user/documents/${id}`)
+}
+
+export async function toggleUserDocument(id: number, active: number): Promise<void> {
+  return service.patch(`/user/documents/${id}`, { active })
+}
+
 export { service as api }

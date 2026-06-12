@@ -4,6 +4,7 @@ import { PublicRoute } from '@/router'
 import LoginPage from '@/pages/LoginPage'
 import ConversationsPage from '@/pages/ConversationsPage'
 import EditorPage from '@/pages/EditorPage'
+import DocumentLibraryPage from '@/pages/DocumentLibraryPage'
 import AppHeader from '@/components/AppHeader'
 
 function AuthenticatedLayout() {
@@ -16,6 +17,7 @@ function AuthenticatedLayout() {
           <Route path="/conversations" element={<ConversationsPage />} />
           <Route path="/editor/:id" element={<EditorPage />} />
           <Route path="/editor" element={<EditorPage />} />
+          <Route path="/documents" element={<DocumentLibraryPage />} />
           <Route
             path="*"
             element={

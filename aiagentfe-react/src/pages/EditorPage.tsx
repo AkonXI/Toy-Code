@@ -80,6 +80,7 @@ export default function EditorPage() {
 
   const {
     isStreaming,
+    setIsStreaming,
     chatRef,
     conversationIdRef,
     requestQueueRef: chatQueueRef,
@@ -236,7 +237,14 @@ export default function EditorPage() {
         { text }
       )
     },
-    [enqueueRequest, conversationIdStr, scrollToBottom, chatRef, setReferenceFiles]
+    [
+      enqueueRequest,
+      conversationIdStr,
+      scrollToBottom,
+      chatRef,
+      setReferenceFiles,
+      setSupplementCount
+    ]
   )
 
   const handleRetrySend = useCallback(() => {
@@ -293,10 +301,19 @@ export default function EditorPage() {
         chatRef,
         conversationId: conversationIdStr,
         enqueueRequest,
-        chatPanelRef
+        chatPanelRef,
+        setIsStreaming,
+        setSupplementCount
       })
     },
-    [modSubmitSupplement, chatRef, conversationIdStr, enqueueRequest]
+    [
+      modSubmitSupplement,
+      chatRef,
+      conversationIdStr,
+      enqueueRequest,
+      setIsStreaming,
+      setSupplementCount
+    ]
   )
 
   const handleRestore = useCallback(async () => {

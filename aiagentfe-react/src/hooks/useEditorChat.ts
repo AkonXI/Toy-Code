@@ -191,6 +191,7 @@ export function useEditorChat() {
 
   return {
     isStreaming,
+    setIsStreaming,
     chatRef,
     transportRef,
     unregRef,

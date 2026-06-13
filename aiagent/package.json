@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon",
-    "qdrant": "qdrant\\qdrant.exe --config-path config\\config.yaml",
+    "qdrant": "qdrant\\qdrant.exe --config-path qdrant\\config\\config.yaml",
     "build": "tsc && node -e \"const fs=require('fs');fs.cpSync('src/storage/schema.sql','dist/storage/schema.sql');fs.cpSync('fonts','dist/fonts',{recursive:true})\"",
     "start": "node dist/index.js",
     "test": "vitest --run",

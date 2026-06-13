@@ -142,9 +142,9 @@ export async function indexUserDocumentChunks(
   const vectors = await Promise.all(chunks.map((c) => getEmbedding(c.pageContent)))
   await ensureUserCollection()
 
-  const points = chunks.map((c) => ({
+  const points = chunks.map((c, i) => ({
     id: userPointId(userId, globalDocId, c.chunkIndex),
-    vector: vectors[c.chunkIndex],
+    vector: vectors[i],
     payload: {
       text: c.pageContent,
       userId,

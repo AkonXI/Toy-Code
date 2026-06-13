@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express'
-import { upload, MulterFile } from '../utils'
+import { upload } from '../utils/multer'
+import { MulterFile } from '../utils/file-parser'
 import { performSearch } from '../services/perform-search'
-import { createAuthMiddleware } from '../../../auth/token'
+import { createAuthMiddleware } from '../auth/token'
 
-const authMiddleware = createAuthMiddleware()
 const router: Router = Router()
+const authMiddleware = createAuthMiddleware()
 
 router.post(
   '/search',
@@ -12,7 +13,8 @@ router.post(
   upload.array('files'),
   async (req: Request, res: Response) => {
     try {
-      const { query, content, url, k, conversationId, messages, userMsgId, assistantMsgId } = req.body
+      const { query, content, url, k, conversationId, messages, userMsgId, assistantMsgId } =
+        req.body
 
       let extractedQuery = query
       if (!extractedQuery && messages) {

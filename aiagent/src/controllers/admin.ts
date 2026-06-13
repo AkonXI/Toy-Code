@@ -1,34 +1,26 @@
 import { Router, Request, Response } from 'express'
-
 import multer from 'multer'
 import path from 'path'
-import crypto from 'crypto'
 import fs from 'fs'
-import { DocumentLoader } from '../../lib/document-loader'
-import { createAuthMiddleware } from '../../auth/token'
+import { createAuthMiddleware } from '../auth/token'
+
+const upload = multer({ storage: multer.memoryStorage() })
 import {
-  getGlobalDocByHash,
-  createGlobalDoc,
-  incrementGlobalDocRefCount,
-  decrementGlobalDocRefCount,
-  getGlobalDocRefCount,
-  deleteGlobalDoc,
-  createSystemDoc,
   getSystemDoc,
   getSystemDocWithFilePath,
   listSystemDocs,
+  createSystemDoc,
   deleteSystemDoc,
-  updateSystemDocActive
-} from '../../storage/repository'
+  updateSystemDocActive,
+  decrementGlobalDocRefCount,
+  getGlobalDocRefCount,
+  deleteGlobalDoc
+} from '../storage/repository'
+import { deleteSystemChunks } from '../lib/vector-db'
+import { processDocumentUpload, indexDocumentChunks } from '../services/document-service'
 
 const router: Router = Router()
 const authMiddleware = createAuthMiddleware()
-const upload = multer({ storage: multer.memoryStorage() })
-
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'documents', 'by_hash')
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true })
-}
 
 router.post(
   '/system-documents',
@@ -45,72 +37,42 @@ router.post(
         res.status(400).json({ error: 'category is required' })
         return
       }
-
-      const file = req.file
+      const file = (req as any).file
       if (!file) {
         res.status(400).json({ error: 'File is required' })
         return
       }
-
-      // 修复中文文件名乱码
       const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8')
 
-      // 提取文本
-      let fileContent = file.buffer.toString('utf-8')
-      if (originalName.toLowerCase().endsWith('.pdf')) {
-        const { PDFParse } = await import('pdf-parse')
-        const parser = new PDFParse({ data: file.buffer })
-        const pdfData = await parser.getText()
-        await parser.destroy()
-        fileContent = pdfData.text
-      }
-      if (fileContent.trim().length < 100) {
+      const processed = await processDocumentUpload(
+        {
+          buffer: file.buffer,
+          originalname: originalName,
+          mimetype: file.mimetype,
+          size: file.size
+        },
+        originalName
+      )
+      createSystemDoc(processed.globalDocId, docType, category, originalName)
+
+      const chunksCount = await indexDocumentChunks(
+        processed.fileContent,
+        originalName,
+        processed.globalDocId,
+        docType,
+        category,
+        'system'
+      )
+      res.json({
+        message: 'System document uploaded',
+        globalDocId: processed.globalDocId,
+        chunksCount
+      })
+    } catch (error: any) {
+      if (error.message?.includes('too short')) {
         res.status(400).json({ error: 'File content too short' })
         return
       }
-
-      // 物理存储 + global_documents
-      const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex')
-      const ext = originalName.toLowerCase().endsWith('.pdf') ? 'pdf' : 'txt'
-      const fileName = `${fileHash}.${ext}`
-      const filePath = path.join(UPLOADS_DIR, fileName)
-      if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, file.buffer)
-      }
-
-      let globalDocId: number
-      const existingGlobal = getGlobalDocByHash(fileHash)
-      if (existingGlobal) {
-        globalDocId = existingGlobal.id
-        incrementGlobalDocRefCount(globalDocId)
-      } else {
-        globalDocId = createGlobalDoc(fileHash, filePath, originalName, ext, file.buffer.length)
-      }
-
-      // 写入 system_documents
-      createSystemDoc(globalDocId, docType, category, originalName)
-
-      // 分块 + 索引到向量库
-      const rag = new DocumentLoader()
-      await rag.loadDocumentsFromText([
-        { text: fileContent, metadata: { source: originalName, file_type: 'system' } }
-      ])
-      if (rag.chunks.length > 0) {
-        const { indexSystemDocumentChunks } = await import('../../lib/vector-db')
-        await indexSystemDocumentChunks(
-          globalDocId,
-          rag.chunks.map((c, i) => ({ pageContent: c.pageContent, chunkIndex: i })),
-          docType,
-          category
-        )
-      }
-
-      res.json({
-        message: 'System document uploaded',
-        globalDocId,
-        chunksCount: rag.chunks.length
-      })
-    } catch (error) {
       console.error('Error uploading system document:', error)
       res.status(500).json({ error: 'Failed to upload system document' })
     }
@@ -120,24 +82,14 @@ router.post(
 router.delete('/system-documents/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string)
-
     const doc = getSystemDocWithFilePath(id)
     if (!doc) {
       res.status(404).json({ error: 'System document not found' })
       return
     }
-
-    // 清理向量库
-    const { deleteSystemChunks } = await import('../../lib/vector-db')
     await deleteSystemChunks(doc.global_doc_id)
-
-    // 删除关联记录
     deleteSystemDoc(id)
-
-    // 递减引用计数
     decrementGlobalDocRefCount(doc.global_doc_id)
-
-    // 引用归零时删除物理文件
     const refCount = getGlobalDocRefCount(doc.global_doc_id)
     if (refCount <= 0) {
       if (fs.existsSync(doc.file_path)) {
@@ -145,7 +97,6 @@ router.delete('/system-documents/:id', authMiddleware, async (req: Request, res:
       }
       deleteGlobalDoc(doc.global_doc_id)
     }
-
     res.json({ message: 'System document deleted' })
   } catch (error) {
     console.error('Error deleting system document:', error)
@@ -153,7 +104,6 @@ router.delete('/system-documents/:id', authMiddleware, async (req: Request, res:
   }
 })
 
-// 获取系统文档列表
 router.get('/system-documents', authMiddleware, async (req: Request, res: Response) => {
   try {
     const rows = listSystemDocs()
@@ -164,7 +114,6 @@ router.get('/system-documents', authMiddleware, async (req: Request, res: Respon
   }
 })
 
-// 获取单个系统文档详情
 router.get('/system-documents/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string)

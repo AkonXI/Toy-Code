@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express'
-
-import { verifyToken, createAuthWithUserMiddleware } from '../../auth/token'
+import { createAuthWithUserMiddleware } from '../auth/token'
 import {
   getUserIdByPhone,
   getUserConversations,
@@ -10,19 +9,17 @@ import {
   isConversationOwner,
   deleteConversation,
   restoreConversation
-} from '../../storage/repository'
-import { getDatabase } from '../../storage/database'
-import { parsePageParams } from '../../lib/pagination'
+} from '../storage/repository'
+import { getDatabase } from '../storage/database'
+import { parsePageParams } from '../lib/pagination'
 
 const router: Router = Router()
 const authWithUser = createAuthWithUserMiddleware()
 
-// 获取会话列表
 router.get('/', authWithUser, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId
     const { page, pageSize } = parsePageParams(req.query, 20)
-
     const result = await getUserConversations(userId, page, pageSize)
     res.json({
       data: result.data,
@@ -34,21 +31,17 @@ router.get('/', authWithUser, async (req: Request, res: Response) => {
   }
 })
 
-// 获取会话消息 + 绑定文档
 router.get('/:id/messages', authWithUser, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId as number
     const conversationId = String(req.params.id)
-
     const isOwner = await isConversationOwner(conversationId, userId)
     if (!isOwner) {
       res.status(403).json({ error: 'Access denied' })
       return
     }
-
     const { page, pageSize } = parsePageParams(req.query, 100)
     const order = (req.query.order as 'ASC' | 'DESC') || 'DESC'
-
     const [messagesResult, documents] = await Promise.all([
       getConversationMessages(conversationId, page, pageSize, order),
       getConversationDocuments(conversationId)
@@ -60,7 +53,6 @@ router.get('/:id/messages', authWithUser, async (req: Request, res: Response) =>
       )
       .get(conversationId) as { content_snapshot: string } | undefined
     const title = await getConversationTitle(conversationId)
-
     res.json({
       data: {
         messages: messagesResult.data,
@@ -78,18 +70,15 @@ router.get('/:id/messages', authWithUser, async (req: Request, res: Response) =>
   }
 })
 
-// 删除会话（软删除）
 router.delete('/:id', authWithUser, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId as number
     const conversationId = String(req.params.id)
-
     const isOwner = await isConversationOwner(conversationId, userId)
     if (!isOwner) {
       res.status(403).json({ error: 'Access denied' })
       return
     }
-
     await deleteConversation(conversationId)
     res.json({ message: 'Conversation deleted' })
   } catch (error) {
@@ -98,13 +87,10 @@ router.delete('/:id', authWithUser, async (req: Request, res: Response) => {
   }
 })
 
-// 恢复已删除会话
 router.post('/:id/restore', authWithUser, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId as number
     const conversationId = String(req.params.id)
-
-    // 恢复需要检查所有权但不排除已删除记录
     const db = getDatabase()
     const row = db
       .prepare('SELECT COUNT(*) as cnt FROM conversations WHERE id = ? AND user_id = ?')
@@ -114,7 +100,6 @@ router.post('/:id/restore', authWithUser, async (req: Request, res: Response) =>
       res.status(403).json({ error: 'Access denied' })
       return
     }
-
     await restoreConversation(conversationId)
     res.json({ message: 'Conversation restored' })
   } catch (error) {

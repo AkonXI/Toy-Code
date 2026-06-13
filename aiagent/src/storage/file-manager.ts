@@ -1,13 +1,14 @@
 import crypto from 'crypto'
 
-import fs from 'fs'
+import fs from 'fs/promises'
+import fsSync from 'fs'
 import path from 'path'
 import { getDatabase } from './database'
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'documents', 'by_hash')
 
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+if (!fsSync.existsSync(UPLOADS_DIR)) {
+  fsSync.mkdirSync(UPLOADS_DIR, { recursive: true })
 }
 
 export interface FileAddResult {
@@ -35,10 +36,10 @@ export async function addFileToConversation(
   const filePath = path.join(UPLOADS_DIR, fileName)
 
   // 先处理文件 I/O，避免在事务中阻塞
-  const fileAlreadyExists = fs.existsSync(filePath)
+  const fileAlreadyExists = fsSync.existsSync(filePath)
   if (!fileAlreadyExists) {
     try {
-      fs.writeFileSync(filePath, fileBuffer)
+      await fs.writeFile(filePath, fileBuffer)
     } catch (err) {
       throw new Error(`File write failed: ${err}`, { cause: err })
     }
@@ -156,7 +157,7 @@ export async function removeFileFromConversation(
 
   for (const fp of filesToDelete) {
     try {
-      if (fs.existsSync(fp)) fs.unlinkSync(fp)
+      if (fsSync.existsSync(fp)) await fs.unlink(fp)
     } catch (err) {
       console.error('Failed to delete file:', fp, err)
     }
@@ -195,8 +196,8 @@ export async function cleanupOldVersions(
           const doc = txnDb
             .prepare('SELECT file_path FROM global_documents WHERE id = ?')
             .get(ref.global_doc_id) as { file_path: string }
-          if (fs.existsSync(doc.file_path)) {
-            fs.unlinkSync(doc.file_path)
+          if (fsSync.existsSync(doc.file_path)) {
+            fsSync.unlinkSync(doc.file_path)
           }
           txnDb.prepare('DELETE FROM global_documents WHERE id = ?').run(ref.global_doc_id)
         }
@@ -205,22 +206,6 @@ export async function cleanupOldVersions(
 
     transaction(db)
   }
-}
-
-export async function getChunksForConversation(
-  conversationId: string
-): Promise<{ pageContent: string; metadata: Record<string, unknown> }[]> {
-  const db = getDatabase()
-  const rows = db
-    .prepare(
-      'SELECT page_content, metadata FROM chunks WHERE conversation_id = ? AND deleted = 0 ORDER BY chunk_index'
-    )
-    .all(conversationId) as { page_content: string; metadata: string }[]
-
-  return rows.map((r) => ({
-    pageContent: r.page_content,
-    metadata: JSON.parse(r.metadata)
-  }))
 }
 
 export interface ConversationDocInfo {

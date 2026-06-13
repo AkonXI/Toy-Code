@@ -1,6 +1,0 @@
-storage:
-  storage_path: data/qdrant/storage
-  snapshots_path: data/qdrant/snapshots
-
-service:
-  static_content_dir: static

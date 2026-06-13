@@ -1,22 +1,17 @@
-import { Request, Response } from 'express'
-import { DocumentLoader } from '../../../lib/document-loader'
+import { DocumentLoader } from '../lib/document-loader'
 import {
   getConversationChunksWithTypes,
   getConversationDocs,
   appendConversationChunks
-} from '../../../storage/repository'
-import { getConversationDocsByType, addFileToConversation } from '../../../storage/file-manager'
-import {
-  decodeFilename,
-  mergeOverlappingChunks,
-  classifyReferenceFile,
-  refCategoryLabel,
-  parseFileContent,
-  validateURL,
-  MulterFile
-} from '../utils'
+} from '../storage/repository'
+import { getConversationDocsByType, addFileToConversation } from '../storage/file-manager'
+import { decodeFilename, mergeOverlappingChunks } from '../utils/text-utils'
+import { classifyReferenceFile, refCategoryLabel } from '../utils/file-classifier'
+import { parseFileContent, MulterFile } from '../utils/file-parser'
+import { validateURL } from '../utils/url-utils'
 import fs from 'fs'
 import path from 'path'
+import type { Request, Response } from 'express'
 
 export interface RagContext {
   resumeContent: string
@@ -70,51 +65,15 @@ export async function buildRagContext(
         resumeContent = mergeOverlappingChunks(resumeChunks)
 
         if (excellentResumeChunks.length > 0) {
-          const refDocs = await getConversationDocsByType(conversationId, 'reference')
-          const nameByRefId: Record<number, string> = {}
-          for (const d of refDocs) {
-            nameByRefId[d.id] = d.original_name
-          }
-          const groups: Record<number, { pageContent: string }[]> = {}
-          for (const c of excellentResumeChunks) {
-            const key = c.refId || 0
-            if (!groups[key]) groups[key] = []
-            groups[key].push(c)
-          }
-          const parts: string[] = []
-          for (const [refIdStr, chunks] of Object.entries(groups)) {
-            const rid = Number(refIdStr)
-            const name = rid ? nameByRefId[rid] : undefined
-            const merged = mergeOverlappingChunks(chunks)
-            parts.push(name ? `--- ${name} ---\n${merged}` : merged)
-          }
-          excellentResumeContent = parts.join('\n\n')
+          excellentResumeContent = await groupChunksByRefId(excellentResumeChunks, conversationId)
         }
 
         if (referenceDocChunks.length > 0) {
-          const refDocs = await getConversationDocsByType(conversationId, 'reference')
-          const nameByRefId: Record<number, string> = {}
-          for (const d of refDocs) {
-            nameByRefId[d.id] = d.original_name
-          }
-          const groups: Record<number, { pageContent: string }[]> = {}
-          for (const c of referenceDocChunks) {
-            const key = c.refId || 0
-            if (!groups[key]) groups[key] = []
-            groups[key].push(c)
-          }
-          const parts: string[] = []
-          for (const [refIdStr, chunks] of Object.entries(groups)) {
-            const rid = Number(refIdStr)
-            const name = rid ? nameByRefId[rid] : undefined
-            const merged = mergeOverlappingChunks(chunks)
-            parts.push(name ? `--- ${name} ---\n${merged}` : merged)
-          }
-          referenceDocContent = parts.join('\n\n')
+          referenceDocContent = await groupChunksByRefId(referenceDocChunks, conversationId)
         }
 
         try {
-          const { searchSystemChunks } = await import('../../../lib/vector-db')
+          const { searchSystemChunks } = await import('../lib/vector-db')
           const sysResults = await searchSystemChunks(query, 3)
           if (sysResults.length > 0) {
             const sysText = '【系统知识库相关参考】\n' + sysResults.map((r) => r.text).join('\n\n')
@@ -130,7 +89,7 @@ export async function buildRagContext(
 
         if (userId) {
           try {
-            const { searchUserChunks } = await import('../../../lib/vector-db')
+            const { searchUserChunks } = await import('../lib/vector-db')
             const userResults = await searchUserChunks(query, userId, 3)
             if (userResults.length > 0) {
               const userText =
@@ -256,4 +215,29 @@ export async function buildRagContext(
       fs.rmSync(tempDir, { recursive: true, force: true })
     }
   }
+}
+
+async function groupChunksByRefId(
+  chunks: { pageContent: string; refId?: number }[],
+  conversationId: string
+): Promise<string> {
+  const refDocs = await getConversationDocsByType(conversationId, 'reference')
+  const nameByRefId: Record<number, string> = {}
+  for (const d of refDocs) {
+    nameByRefId[d.id] = d.original_name
+  }
+  const groups: Record<number, { pageContent: string }[]> = {}
+  for (const c of chunks) {
+    const key = c.refId || 0
+    if (!groups[key]) groups[key] = []
+    groups[key].push(c)
+  }
+  const parts: string[] = []
+  for (const [refIdStr, chunkGroup] of Object.entries(groups)) {
+    const rid = Number(refIdStr)
+    const name = rid ? nameByRefId[rid] : undefined
+    const merged = mergeOverlappingChunks(chunkGroup)
+    parts.push(name ? `--- ${name} ---\n${merged}` : merged)
+  }
+  return parts.join('\n\n')
 }

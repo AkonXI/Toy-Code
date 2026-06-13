@@ -16,7 +16,7 @@ Express + AI SDK v6 + LangChain + DeepSeek + Qdrant
 npm run dev       # nodemon + tsx, watches src/
 npm run build     # tsc → dist/
 npm start         # node dist/index.js
-npm run qdrant    # qdrant/qdrant.exe --config-path config/config.yaml
+npm run qdrant    # qdrant/qdrant.exe --config-path qdrant/config/config.yaml
 npm test          # vitest --run
 npm test:watch    # vitest watch
 ```
@@ -29,38 +29,56 @@ npm test:watch    # vitest watch
 
 ## Architecture
 
+Controller → Service → Repository 分层，控制器薄（30-80 行），业务逻辑在 Service 层。
+
 ```
 src/
   index.ts              # Entry, routes + shutdown + CORS
-  routes/
-    rag/
-      index.ts          # Orchestrator: mounts all handler routes
-      utils.ts          # Shared utilities (decodeFilename, mergeOverlappingChunks, etc.)
-      handlers/         # Route handlers (thin: req → service → res)
-        search.ts       # POST /rag/search
-        start.ts        # POST /rag/start + GET /rag/start/progress
-        modify.ts       # POST /rag/apply-modification + POST /rag/render-resume-pdf
-        documents.ts    # GET/DELETE/POST /rag/docs/*
-        summarize.ts    # POST /rag/summarize
-      services/         # Business logic (no route registration)
-        perform-search.ts  # SSE orchestration: auth → context → intent → streamText
-        rag-context.ts     # Chunk/file/URL loading + user doc search + tempDir lifecycle
-        intent.ts          # Intent classification (建议/修改/追问)
-        tools.ts           # updateResumeTool + proposeModificationTool
-    conversation/       # GET/POST/DELETE conversations + messages
-    user/               # GET /user/profile + /user/documents CRUD
-    admin/              # System knowledge base CRUD (+ PATCH active)
+  controllers/          # Thin route handlers (req → service → res)
+    rag-start.ts        # POST /rag/start + GET /rag/start/progress
+    rag-search.ts       # POST /rag/search
+    rag-modify.ts       # POST /rag/apply-modification + /rag/render-resume-pdf
+    rag-documents.ts    # GET/DELETE/POST /rag/docs/*
+    rag-summarize.ts    # POST /rag/summarize
+    conversation.ts     # GET/POST/DELETE conversations + messages
+    user.ts             # GET /user/profile + /user/documents CRUD
+    admin.ts            # System knowledge base CRUD (+ PATCH active)
+  services/             # Business logic (no Express types)
+    start-conversation.ts
+    perform-search.ts   # SSE orchestration: auth → context → intent → streamText
+    apply-modification.ts
+    restore-document.ts
+    rag-context.ts      # Chunk/file/URL loading + user doc search + tempDir lifecycle
+    intent.ts           # Intent classification (建议/修改/追问)
+    tools.ts            # updateResumeTool + proposeModificationTool
+    summary-service.ts  # LLM 自动摘要
+    document-service.ts # 文档上传/索引（user + admin 共享）
+  utils/                # Shared utilities (no framework deps)
+    file-parser.ts      # PDF/DOCX/TXT content extraction
+    file-classifier.ts  # Reference file classification
+    text-utils.ts       # decodeFilename, mergeOverlappingChunks
+    url-utils.ts        # validateURL
+    multer.ts           # Multer upload config
+    auth-utils.ts       # extractUserId
+  middleware/
+    validation.ts       # validateBody/Params/Query (zod-based)
   lib/
     providers.ts        # ChatDeepSeek + embedding (Redis + 内存 LRU 双级缓存) + p-retry
-    prompts.ts          # ChatPromptTemplate + XML 标签结构化注入防御
+    prompts.ts          # ChatPromptTemplate + 所有 LLM prompt 模板
     resume-pdfmaker.ts  # PDF generation (pdfmake + SourceHanSansSC)
     resume-markdown.ts  # replaceText (4-level matching), modifySection
-    vector-db.ts        # Qdrant client (system_chunks + user_chunks 双集合) / search / delete
+    vector-db.ts        # Qdrant client (system_chunks + user_chunks 双集合)
+    schemas.ts          # 纯 zod schema 定义（无 Express 中间件）
     pagination.ts       # Shared pagination utility
-    document-loader.ts  # DocumentLoader（文档加载+分块+页码元数据，零检索）
-    redis.ts            # Redis client (auto-connect, dotenv.config)
+    document-loader.ts  # DocumentLoader（文档加载+分块+页码元数据）
+    redis.ts            # Redis client (auto-connect)
   auth/                 # Login, logout, token middleware, captcha
-  storage/              # schema.sql + database + repository + file-manager + summary-manager
+  storage/
+    repositories/       # Domain repositories (user / conversation / document)
+    file-manager.ts     # File storage management
+    summary-manager.ts  # DB query + auto-summary registration hook
+    database.ts         # Database init + migrations
+    schema.sql          # SQL schema
 ```
 
 ## Key Dependencies
@@ -72,7 +90,6 @@ src/
 | `@langchain/deepseek` | Offline LLM calls (p-retry 3次指数退避) |
 | `@qdrant/js-client-rest` | Vector DB (user_chunks + system_chunks 集合) |
 | `@huggingface/transformers` | `Xenova/bge-small-zh-v1.5` embedding |
-
 
 ## Core Features
 
@@ -119,5 +136,5 @@ src/
 
 ## Testing
 
-- `npm test` = vitest, 68 tests in `test/`
+- `npm test` = vitest, 75 tests in `test/`
 - Coverage: routes, auth, captcha, RAG, storage, chunk classification, resume-markdown, pagination, schemas, URL validation

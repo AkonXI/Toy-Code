@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
-import { redis, inMemoryCaptcha } from './captcha'
+import { verifyCaptcha } from './captcha'
 import { storeToken, verifyToken, removeToken } from './token'
 import { ensureUser, recordLogin } from '../storage/repository'
 
@@ -14,36 +14,9 @@ router.post('/login', async (req: Request, res: Response) => {
     return
   }
 
-  let storedCaptcha: string | null = null
-
-  if (redis && redis.status === 'ready') {
-    const raw = await redis.get(key)
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw)
-        storedCaptcha = parsed.text
-      } catch {
-        storedCaptcha = raw
-      }
-      await redis.del(key)
-    }
-  } else {
-    const captchaData = inMemoryCaptcha[key]
-    if (captchaData && captchaData.expiresAt > Date.now()) {
-      storedCaptcha = captchaData.text
-      delete inMemoryCaptcha[key]
-    } else if (captchaData) {
-      delete inMemoryCaptcha[key]
-    }
-  }
-
-  if (!storedCaptcha) {
-    res.status(400).json({ error: 'Invalid or expired captcha key' })
-    return
-  }
-
-  if (storedCaptcha !== captcha) {
-    res.status(400).json({ error: 'Invalid captcha' })
+  const result = await verifyCaptcha(key, captcha)
+  if (!result.valid) {
+    res.status(400).json({ error: 'Invalid or expired captcha' })
     return
   }
 

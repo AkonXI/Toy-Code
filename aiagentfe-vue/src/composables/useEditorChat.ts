@@ -1,10 +1,15 @@
 import { watch, type Ref } from 'vue'
 import { Chat } from '@ai-sdk/vue'
-import type { UIMessage } from 'ai'
 import { getConversationMessages } from '@/api'
 import { MultipartChatTransport } from '@/lib/multipart-chat-transport'
 import { useResumeStore } from '@/stores/resume'
-import type { Message, OptimizationItem, ModificationItem } from '@/types/chat'
+import {
+  extractPartsText,
+  extractPartsReasoning,
+  extractPartsOptimizations,
+  extractPartsModifications
+} from '@/lib/editor-utils'
+import type { Message } from '@/types/chat'
 
 interface UseEditorChatOptions {
   conversationId: Ref<string>
@@ -26,59 +31,6 @@ export function useEditorChat(options: UseEditorChatOptions) {
   let chat!: Chat<any>
   let transport!: MultipartChatTransport<any>
   let chatWatchHandle: (() => void) | null = null
-
-  function extractMessageContent(sdkMsg: UIMessage): string {
-    const textParts = sdkMsg.parts?.filter((p: any) => p.type === 'text')
-    return (
-      textParts
-        ?.map((p: any) => p.text ?? p.content ?? '')
-        .filter(Boolean)
-        .join('\n') ?? ''
-    )
-  }
-
-  function extractReasoning(sdkMsg: UIMessage): string {
-    const reasoningParts = sdkMsg.parts?.filter((p: any) => p.type === 'reasoning')
-    return (
-      reasoningParts
-        ?.map((p: any) => p.text ?? p.reasoning ?? '')
-        .filter(Boolean)
-        .join('\n') || ''
-    )
-  }
-
-  function extractModifications(sdkMsg: UIMessage): ModificationItem[] {
-    const modList: ModificationItem[] = []
-    const toolParts = (sdkMsg.parts?.filter(
-      (p: any) =>
-        p.type === 'dynamic-tool' || p.type === 'tool-invocation' || p.type?.startsWith('tool-')
-    ) ?? []) as any[]
-    for (const part of toolParts) {
-      const output = part.output ?? part.toolInvocation?.result ?? part.toolInvocation?.output
-      if (output?.modification) {
-        modList.push(output.modification)
-      }
-    }
-    return modList
-  }
-
-  function extractOptimizations(sdkMsg: UIMessage): OptimizationItem[] {
-    const optList: OptimizationItem[] = []
-    const toolParts = (sdkMsg.parts?.filter(
-      (p: any) =>
-        p.type === 'dynamic-tool' || p.type === 'tool-invocation' || p.type?.startsWith('tool-')
-    ) ?? []) as any[]
-    for (const part of toolParts) {
-      const output = part.output ?? part.toolInvocation?.result ?? part.toolInvocation?.output
-      if (output?.optimization) {
-        optList.push(output.optimization)
-      }
-      if (output?.optimizations) {
-        optList.push(...output.optimizations)
-      }
-    }
-    return optList
-  }
 
   const fetchWithAuth: typeof fetch = async (input, init) => {
     const headers = new Headers(init?.headers)
@@ -155,10 +107,10 @@ export function useEditorChat(options: UseEditorChatOptions) {
           return {
             id: m.id ?? '',
             role: m.role as 'user' | 'assistant',
-            content: extractMessageContent(m),
-            reasoning: existing?.reasoning || extractReasoning(m) || '',
-            optimizations: existing?.optimizations || extractOptimizations(m) || [],
-            modifications: existing?.modifications || extractModifications(m) || []
+            content: extractPartsText(m.parts ?? []),
+            reasoning: existing?.reasoning || extractPartsReasoning(m.parts ?? []) || '',
+            optimizations: existing?.optimizations || extractPartsOptimizations(m.parts ?? []) || [],
+            modifications: existing?.modifications || extractPartsModifications(m.parts ?? []) || []
           }
         })
         const existingIds = new Set(resumeStore.messages.map((m: any) => m.id))
@@ -189,19 +141,20 @@ export function useEditorChat(options: UseEditorChatOptions) {
         if (!sdkMessages || sdkMessages.length === 0) return
 
         for (const sdkMsg of sdkMessages) {
-          const content = extractMessageContent(sdkMsg)
+          const parts = sdkMsg.parts ?? []
+          const content = extractPartsText(parts)
 
           if (!content && sdkMsg.role === 'assistant') {
-            const allTool = (sdkMsg.parts ?? []).every(
+            const allTool = parts.every(
               (p: any) => p.type.startsWith('tool-') || p.type === 'dynamic-tool'
             )
             if (allTool) continue
           }
 
           const idx = options.messages.value.findIndex((m) => m.id === sdkMsg.id)
-          const reasoning = extractReasoning(sdkMsg)
-          const optimizations = extractOptimizations(sdkMsg)
-          const modifications = extractModifications(sdkMsg)
+          const reasoning = extractPartsReasoning(parts)
+          const optimizations = extractPartsOptimizations(parts)
+          const modifications = extractPartsModifications(parts)
           if (idx >= 0) {
             if (content) options.messages.value[idx].content = content
             if (reasoning) options.messages.value[idx].reasoning = reasoning
@@ -241,10 +194,6 @@ export function useEditorChat(options: UseEditorChatOptions) {
     transport,
     initChat,
     showReasoningMap,
-    extractMessageContent,
-    extractReasoning,
-    extractModifications,
-    extractOptimizations,
     fetchWithAuth
   }
 }

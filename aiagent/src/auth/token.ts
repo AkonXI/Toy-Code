@@ -53,16 +53,20 @@ export async function verifyToken(token: string): Promise<string | null> {
   return null
 }
 
+export function extractToken(req: AuthRequest): string | undefined {
+  const authHeader = req.headers['authorization']
+  const bearerToken =
+    typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : undefined
+  const legacyHeader = req.headers['token'] || req.headers['Token']
+  const legacyToken = Array.isArray(legacyHeader) ? legacyHeader[0] : legacyHeader
+  return bearerToken || legacyToken
+}
+
 export function createAuthMiddleware() {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    const authHeader = req.headers['authorization']
-    const bearerToken =
-      typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
-        ? authHeader.slice(7)
-        : undefined
-    const legacyHeader = req.headers['token'] || req.headers['Token']
-    const legacyToken = Array.isArray(legacyHeader) ? legacyHeader[0] : legacyHeader
-    const token = bearerToken || legacyToken
+    const token = extractToken(req)
 
     if (!token) {
       return res.status(401).json({ error: 'Token required' })
@@ -85,14 +89,7 @@ export function createAuthMiddleware() {
 // 组合中间件：认证 + 解析 userId（用于 conversation/user 路由）
 export function createAuthWithUserMiddleware() {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const authHeader = req.headers['authorization']
-    const bearerToken =
-      typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
-        ? authHeader.slice(7)
-        : undefined
-    const legacyHeader = req.headers['token'] || req.headers['Token']
-    const legacyToken = Array.isArray(legacyHeader) ? legacyHeader[0] : legacyHeader
-    const token = bearerToken || legacyToken
+    const token = extractToken(req)
     if (!token) return res.status(401).json({ error: 'Token required' })
 
     const username = await verifyToken(token)
@@ -120,10 +117,9 @@ export async function storeToken(token: string, username: string, expirySeconds:
 }
 
 export async function removeToken(token: string) {
+  delete inMemoryTokens[token]
   if (authRedis && authRedis.status === 'ready') {
     await authRedis.del(`token:${token}`)
-  } else {
-    delete inMemoryTokens[token]
   }
 }
 

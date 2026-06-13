@@ -1,8 +1,6 @@
 import express, { Express, Request, Response, Router } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import multer from 'multer'
-import path from 'path'
 import routeConfig from './routes'
 import { closeDatabase } from './storage/database'
 import { tokenCleanupInterval } from './auth/token'
@@ -12,8 +10,6 @@ dotenv.config()
 
 const app: Express = express()
 const port = process.env.PORT || 3000
-
-const upload = multer({ storage: multer.memoryStorage() })
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim())

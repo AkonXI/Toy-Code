@@ -75,6 +75,10 @@ export function useEditorPdf(
 
   async function handleRestore(refId: number) {
     try {
+      await restoreDocVersion(refId)
+      ElMessage.success('已恢复')
+      await loadDocHistory()
+      await reloadPdfFromServer()
       const v = docVersions.value.find((d) => d.refId === refId)
       const ts = Date.now()
       messages.value.push({
@@ -84,10 +88,6 @@ export function useEditorPdf(
       })
       autoScroll.value = true
       chatPanelRef.value?.scrollToBottom()
-      await restoreDocVersion(refId)
-      ElMessage.success('已恢复')
-      await loadDocHistory()
-      await reloadPdfFromServer()
     } catch (e) {
       console.error('Failed to restore version:', e)
       ElMessage.error('恢复失败')

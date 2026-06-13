@@ -239,7 +239,7 @@ function parseInlineForHeading(text: string, fontSize: number, bold: boolean): R
 export function parseAIContent(text: string): Record<string, any>[] {
   // 尝试 JSON 解析
   const trimmed = text.trim()
-  if (trimmed.startsWith('[') || trimmed.startsWith('[')) {
+  if (trimmed.startsWith('[')) {
     try {
       const parsed = JSON.parse(trimmed)
       if (Array.isArray(parsed)) return parsed

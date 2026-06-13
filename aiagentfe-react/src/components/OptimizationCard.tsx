@@ -1,6 +1,6 @@
 import { Button } from 'antd'
 import type { OptimizationItem } from '@/types/chat'
-import RenderSuggestion from '@/lib/RenderSuggestion'
+import RenderSuggestion from '@/components/RenderSuggestion'
 
 interface OptimizationCardProps {
   item: OptimizationItem

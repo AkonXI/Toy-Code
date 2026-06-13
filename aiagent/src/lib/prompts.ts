@@ -131,17 +131,32 @@ const REFERENCE_GUARD = `\n【参考资料使用规则】
 - "岗位参考资料"类（JD、招聘要求等）：这是目标岗位的核心需求，你的修改建议应参考这些要求，帮助用户对齐岗位标准
 - 未分类资料：作为一般参考了解\n`
 
-export function buildToolSection(intent: '建议' | '修改' | '追问'): string {
-  if (intent === '追问') return FOLLOWUP_TOOLS
-  return intent === '修改' ? MODIFY_TOOLS : SUGGEST_TOOLS
-}
+export const INTENT_CLASSIFICATION_PROMPT = `判断用户对简历的操作意图。
+{formatInstructions}
 
-export function buildReferenceGuard(
-  excellentResumeSection: string,
-  referenceDocSection: string
-): string {
-  return excellentResumeSection || referenceDocSection ? REFERENCE_GUARD : ''
-}
+"建议"：用户要求分析简历、提改进方向、哪里可以优化，没有指定具体怎么改。即使用户说"请分析这份简历"、"帮我看看"、"有什么建议"、"提点意见"、"你觉得呢"等笼统表达，只要涉及简历分析或优化需求，都应归为"建议"。
+"修改"：用户明确要求对某个具体字段做直接修改（如"把XX改详细"、"简化XX"、"补充XX内容"）。
+"追问"：用户的表达完全无关或过于模糊，既不像在要求分析简历，也不像要修改具体字段（如只说"你好"、"在吗"、"不知道"等无实质内容的招呼）。不要因为用户没说具体要改哪里就输出"追问"。
+
+用户问题: {query}`
+
+export const SUMMARY_TEMPLATE = `请总结以下对话内容，提取关键信息和用户需求。保持简洁（400字以内）。\n最后用 - [ ] 格式列出当前的待办事项（未完成的修改、待确认的建议等）。如无待办则写"无待办"。\n\n{text}`
+
+export const COMPRESS_TEMPLATE = `以下是一段对话的多段摘要，请合并压缩为一段连贯的摘要（600字以内）。\n必须保留：用户的初始意图 / 核心目标、已完成的修改项、关键决策。\n其他过程性细节可适当精简。\n\n{text}`
+
+export const INCREMENTAL_SUMMARY_PROMPT = `上一段摘要：{prevSummary}\n\n新对话内容：\n{text}\n\n请结合上一段摘要，总结新对话内容中新增的关键信息和用户需求。保持简洁（400字以内）。\n最后用 - [ ] 格式列出当前的待办事项（未完成的修改、待确认的建议等）。如无待办则写"无待办"。`
+
+export const RESUME_TO_MARKDOWN_PROMPT = `将以下简历文本转换为结构化 Markdown 格式。用 ## 标题分层，保留全部内容。\n\n{content}`
+
+export const CLASSIFY_REFERENCE_FILE_PROMPT = `判断下面文本属于哪一类参考资料。
+{formatInstructions}
+
+- excellent_resume：包含个人信息、工作经历、教育背景、技能等简历内容（典型简历）
+- reference_doc：除简历外的其它参考文件，包括但不限于岗位描述(JD)、招聘准则、行业报告、公司介绍等
+- unknown：无法判断
+
+文本前300字：
+{content}`
 
 export async function buildSearchPrompt(params: {
   historySection: string
@@ -201,23 +216,6 @@ export async function buildAcceptPrompt(params: {
     field: params.field,
     current: params.current,
     reason: params.reason || '',
-    suggestion: params.suggestion
-  })
-}
-
-/** @deprecated 使用 buildApplyPrompt / buildAcceptPrompt 代替 */
-export async function buildModificationPrompt(params: {
-  fullText: string
-  field: string
-  suggestion: string
-  type: 'apply' | 'accept'
-}): Promise<string> {
-  const fn = params.type === 'accept' ? buildAcceptPrompt : buildApplyPrompt
-  return fn({
-    fullText: params.fullText,
-    field: params.field,
-    current: params.field,
-    reason: '',
     suggestion: params.suggestion
   })
 }

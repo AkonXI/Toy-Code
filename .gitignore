@@ -3,3 +3,7 @@ dist/
 .DS_Store
 *.local
 .env
+opencode.json
+AGENTS.md
+skills-lock.json
+.agents/

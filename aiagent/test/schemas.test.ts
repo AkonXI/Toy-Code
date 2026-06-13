@@ -1,98 +1,111 @@
-import { describe, it, expect } from 'vitest';
-import { TodoSchema, UserSchema, MessageSchema } from '../src/lib/schemas';
+import { describe, it, expect } from 'vitest'
+import {
+  LoginSchema,
+  CaptchaGenerateSchema,
+  CaptchaVerifySchema,
+  RagSearchSchema,
+  ApplyModificationSchema,
+  RenderResumePdfSchema,
+  RagSummarizeSchema,
+  UploadUserDocumentSchema,
+  PatchUserDocumentSchema,
+  AdminUploadSystemDocSchema,
+  PatchSystemDocSchema,
+  IdParamSchema,
+  RefIdParamSchema,
+  ConversationIdParamSchema,
+  ConversationIdQuerySchema
+} from '../src/lib/schemas'
 
-describe('TodoSchema', () => {
-  it('should accept valid todo', () => {
-    const result = TodoSchema.parse({ title: '完成任务', completed: false });
-    expect(result.title).toBe('完成任务');
-  });
+describe('LoginSchema', () => {
+  it('should accept valid login', () => {
+    const result = LoginSchema.parse({ phone: '13800138000', captcha: '123456', key: 'abc' })
+    expect(result.phone).toBe('13800138000')
+  })
 
-  it('should reject todo missing title', () => {
-    expect(() => TodoSchema.parse({ completed: true })).toThrow();
-  });
-});
+  it('should reject invalid phone', () => {
+    expect(() => LoginSchema.parse({ phone: '123', captcha: '123456', key: 'abc' })).toThrow()
+  })
 
-describe('UserSchema', () => {
-  it('should accept valid user', () => {
-    const user = {
-      id: '550e8400-e29b-41d4-a716-446655440000',
-      name: '张三',
-      email: 'zhangsan@example.com',
-      role: 'admin' as const,
-    };
-    const result = UserSchema.parse(user);
-    expect(result.name).toBe('张三');
-  });
-
-  it('should accept user with optional age', () => {
-    const user = {
-      id: '550e8400-e29b-41d4-a716-446655440001',
-      name: '李四',
-      email: 'lisi@example.com',
-      role: 'user' as const,
-      age: 25,
-    };
-    const result = UserSchema.parse(user);
-    expect(result.age).toBe(25);
-  });
-
-  it('should reject invalid email', () => {
+  it('should reject short captcha', () => {
     expect(() =>
-      UserSchema.parse({
-        id: '550e8400-e29b-41d4-a716-446655440002',
-        name: '王五',
-        email: 'not-an-email',
-        role: 'guest',
-      }),
-    ).toThrow();
-  });
+      LoginSchema.parse({ phone: '13800138000', captcha: '12345', key: 'abc' })
+    ).toThrow()
+  })
+})
 
-  it('should reject invalid role', () => {
-    expect(() =>
-      UserSchema.parse({
-        id: '550e8400-e29b-41d4-a716-446655440003',
-        name: '赵六',
-        email: 'zhao@example.com',
-        role: 'superadmin',
-      }),
-    ).toThrow();
-  });
-});
+describe('RagSearchSchema', () => {
+  it('should accept search with only query', () => {
+    const result = RagSearchSchema.parse({ query: '优化简历' })
+    expect(result.query).toBe('优化简历')
+  })
 
-describe('MessageSchema', () => {
-  it('should accept valid message', () => {
-    const msg = {
-      id: '550e8400-e29b-41d4-a716-446655440010',
-      content: '你好',
-      senderId: '550e8400-e29b-41d4-a716-446655440011',
-      receiverId: '550e8400-e29b-41d4-a716-446655440012',
-      timestamp: '2024-01-01T00:00:00Z',
-    };
-    const result = MessageSchema.parse(msg);
-    expect(result.content).toBe('你好');
-  });
+  it('should accept empty object', () => {
+    const result = RagSearchSchema.parse({})
+    expect(result).toBeDefined()
+  })
 
-  it('should reject empty content', () => {
-    expect(() =>
-      MessageSchema.parse({
-        id: '550e8400-e29b-41d4-a716-446655440013',
-        content: '',
-        senderId: '550e8400-e29b-41d4-a716-446655440014',
-        receiverId: '550e8400-e29b-41d4-a716-446655440015',
-        timestamp: '2024-01-01T00:00:00Z',
-      }),
-    ).toThrow();
-  });
+  it('should reject invalid url', () => {
+    expect(() => RagSearchSchema.parse({ url: 'not-a-url' })).toThrow()
+  })
+})
 
-  it('should reject content exceeding 1000 chars', () => {
-    expect(() =>
-      MessageSchema.parse({
-        id: '550e8400-e29b-41d4-a716-446655440016',
-        content: 'a'.repeat(1001),
-        senderId: '550e8400-e29b-41d4-a716-446655440017',
-        receiverId: '550e8400-e29b-41d4-a716-446655440018',
-        timestamp: '2024-01-01T00:00:00Z',
-      }),
-    ).toThrow();
-  });
-});
+describe('ApplyModificationSchema', () => {
+  it('should accept valid modification', () => {
+    const result = ApplyModificationSchema.parse({
+      conversationId: 'conv_123',
+      optimization: { field: 'summary', current: 'old text', suggestion: 'new text' }
+    })
+    expect(result.conversationId).toBe('conv_123')
+  })
+
+  it('should accept optimization as JSON string', () => {
+    const result = ApplyModificationSchema.parse({
+      conversationId: 'conv_123',
+      optimization: JSON.stringify({ field: 'summary', current: 'old', suggestion: 'new' })
+    })
+    expect(typeof result.optimization).toBe('string')
+  })
+})
+
+describe('RenderResumePdfSchema', () => {
+  it('should reject empty markdown', () => {
+    expect(() => RenderResumePdfSchema.parse({ markdown: '' })).toThrow()
+  })
+})
+
+describe('UploadUserDocumentSchema', () => {
+  it('should accept valid doc type', () => {
+    const result = UploadUserDocumentSchema.parse({ docType: 'excellent_resume' })
+    expect(result.docType).toBe('excellent_resume')
+  })
+
+  it('should reject invalid doc type', () => {
+    expect(() => UploadUserDocumentSchema.parse({ docType: 'invalid' })).toThrow()
+  })
+})
+
+describe('PatchUserDocumentSchema', () => {
+  it('should accept 0', () => {
+    expect(PatchUserDocumentSchema.parse({ active: 0 }).active).toBe(0)
+  })
+
+  it('should accept 1', () => {
+    expect(PatchUserDocumentSchema.parse({ active: 1 }).active).toBe(1)
+  })
+
+  it('should reject 2', () => {
+    expect(() => PatchUserDocumentSchema.parse({ active: 2 })).toThrow()
+  })
+})
+
+describe('IdParamSchema', () => {
+  it('should coerce string to number', () => {
+    const result = IdParamSchema.parse({ id: '42' })
+    expect(result.id).toBe(42)
+  })
+
+  it('should reject negative id', () => {
+    expect(() => IdParamSchema.parse({ id: '-1' })).toThrow()
+  })
+})

@@ -1,6 +1,6 @@
 import { Button } from 'antd'
 import type { ModificationItem } from '@/types/chat'
-import RenderSuggestion from '@/lib/RenderSuggestion'
+import RenderSuggestion from '@/components/RenderSuggestion'
 
 interface ModificationReviewProps {
   item: ModificationItem

@@ -100,46 +100,48 @@ captchaRouter.post('/generate', async (req: Request, res: Response) => {
   }
 })
 
+export async function verifyCaptcha(
+  key: string,
+  code: string
+): Promise<{ valid: boolean; phone?: string }> {
+  let storedText: string | null = null
+  let phone: string | null = null
+
+  if (redis && redis.status === 'ready') {
+    const raw = await redis.get(key)
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw)
+        storedText = parsed.text
+        phone = parsed.phone
+      } catch {
+        storedText = raw
+      }
+      await redis.del(key)
+    }
+  } else {
+    const captcha = inMemoryCaptcha[key]
+    if (captcha && captcha.expiresAt > Date.now()) {
+      storedText = captcha.text
+      phone = captcha.phone
+      delete inMemoryCaptcha[key]
+    } else if (captcha) {
+      delete inMemoryCaptcha[key]
+    }
+  }
+
+  return { valid: storedText === code, phone: phone || undefined }
+}
+
 captchaRouter.post('/verify', async (req: Request, res: Response) => {
   try {
     const { key, code } = req.body
-
     if (!key || !code) {
       res.status(400).json({ error: 'Key and code required' })
       return
     }
-
-    let storedText: string | null = null
-    let phone: string | null = null
-
-    if (redis && redis.status === 'ready') {
-      const raw = await redis.get(key)
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw)
-          storedText = parsed.text
-          phone = parsed.phone
-        } catch {
-          storedText = raw
-        }
-        await redis.del(key)
-      }
-    } else {
-      const captcha = inMemoryCaptcha[key]
-      if (captcha && captcha.expiresAt > Date.now()) {
-        storedText = captcha.text
-        phone = captcha.phone
-        delete inMemoryCaptcha[key]
-      } else if (captcha) {
-        delete inMemoryCaptcha[key]
-      }
-    }
-
-    if (storedText === code) {
-      res.json({ valid: true })
-    } else {
-      res.json({ valid: false })
-    }
+    const result = await verifyCaptcha(key, code)
+    res.json({ valid: result.valid })
   } catch (error) {
     console.error('Error verifying captcha:', error)
     res.status(500).json({ error: 'Failed to verify captcha' })
@@ -147,5 +149,4 @@ captchaRouter.post('/verify', async (req: Request, res: Response) => {
 })
 
 export default captchaRouter
-export { redis }
 export { inMemoryCaptcha }

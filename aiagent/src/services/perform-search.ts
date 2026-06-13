@@ -1,18 +1,19 @@
-import { Request, Response } from 'express'
 import { streamText, stepCountIs } from 'ai'
-import { deepseek, DEFAULT_MODEL, getChatModel } from '../../../lib/providers'
-import { buildSearchPrompt, buildTitlePrompt } from '../../../lib/prompts'
+import { deepseek, DEFAULT_MODEL, getChatModel } from '../lib/providers'
+import { buildSearchPrompt, buildTitlePrompt } from '../lib/prompts'
 import {
   getConversationTitle,
   updateConversationTitle,
   isConversationOwner,
   buildHistoryPrompt
-} from '../../../storage/repository'
-import { getDatabase } from '../../../storage/database'
-import { extractUserId, MulterFile } from '../utils'
+} from '../storage/repository'
+import { getDatabase } from '../storage/database'
+import { extractUserId } from '../utils/auth-utils'
 import { classifyIntent } from './intent'
 import { buildRagContext } from './rag-context'
 import { updateResumeTool, proposeModificationTool } from './tools'
+import type { Request, Response } from 'express'
+import type { MulterFile } from '../utils/file-parser'
 
 export async function performSearch(
   reqBody: {

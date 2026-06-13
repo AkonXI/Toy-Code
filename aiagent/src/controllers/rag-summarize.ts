@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express'
-import { createAuthWithUserMiddleware } from '../../../auth/token'
-import { isConversationOwner } from '../../../storage/repository'
+import { createAuthWithUserMiddleware } from '../auth/token'
+import { isConversationOwner } from '../storage/repository'
+import { generateConversationSummary } from '../storage/summary-manager'
 
-const authWithUser = createAuthWithUserMiddleware()
 const router: Router = Router()
+const authWithUser = createAuthWithUserMiddleware()
 
 router.post('/summarize', authWithUser, async (req: Request, res: Response) => {
   try {
@@ -18,7 +19,6 @@ router.post('/summarize', authWithUser, async (req: Request, res: Response) => {
       res.status(403).json({ error: 'Access denied' })
       return
     }
-    const { generateConversationSummary } = await import('../../../storage/repository')
     const summary = await generateConversationSummary(conversationId)
     res.json({ message: 'Summary generated', summary })
   } catch (error) {

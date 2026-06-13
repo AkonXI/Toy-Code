@@ -40,7 +40,7 @@ DEEPSEEK_API_KEY=你的API密钥
 启动 Qdrant（需先下载 qdrant.exe 到 qdrant/ 目录）：
 
 ```bash
-npm run qdrant      # qdrant/qdrant.exe --config-path config/config.yaml
+npm run qdrant      # qdrant/qdrant.exe --config-path qdrant/config/config.yaml
 ```
 
 ```bash

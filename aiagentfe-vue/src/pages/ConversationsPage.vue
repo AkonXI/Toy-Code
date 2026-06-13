@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, UploadFilled, Document, Loading, Delete } from '@element-plus/icons-vue'
@@ -138,7 +138,9 @@ const selectedFile = ref<File | null>(null)
 const prompt = ref('')
 const fileInputRef = ref<HTMLInputElement>()
 
-store.fetchConversations(1, 50)
+onMounted(() => {
+  store.fetchConversations(1, 50)
+})
 
 function triggerFile() {
   fileInputRef.value?.click()

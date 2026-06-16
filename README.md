@@ -6,15 +6,15 @@
 
 ## 项目列表
 
-| 项目                                       | 简介                     | 技术栈                                                 |
-| ------------------------------------------ | ------------------------ | ------------------------------------------------------ |
-| [aiagent](./aiagent)                       | AI 简历优化后端          | Express + Vercel AI SDK + LangChain + Qdrant + SQLite  |
-| [aiagentfe-react](./aiagentfe-react)       | 简历优化前端（React）    | React 19 + Ant Design 6 + Zustand + Tailwind CSS       |
-| [aiagentfe-vue](./aiagentfe-vue)           | 简历优化前端（Vue）      | Vue 3 + Element Plus + Pinia + Tailwind CSS            |
-| [big-screen](./big-screen)                 | 数据可视化大屏           | Vue 2 + ECharts + Ant Design Vue                       |
-| [canvas-anno-vue](./canvas-anno-vue)       | 图片标注工具             | Vue 3 + Canvas 2D + Tailwind CSS                       |
-| [emoji-mouse](./emoji-mouse)               | emoji 鼠标拖尾浏览器扩展 | Plasmo + React + Tailwind CSS                          |
-| [spell-check-editor](./spell-check-editor) | 拼写检查富文本编辑器     | React 19 + TinyMCE                                     |
+| 项目                                       | 简介                     | 技术栈                                                |
+| ------------------------------------------ | ------------------------ | ----------------------------------------------------- |
+| [aiagent](./aiagent)                       | AI 简历优化后端          | Express + Vercel AI SDK + LangChain + Qdrant + SQLite |
+| [aiagentfe-react](./aiagentfe-react)       | 简历优化前端（React）    | React 19 + Ant Design 6 + Zustand + Tailwind CSS      |
+| [aiagentfe-vue](./aiagentfe-vue)           | 简历优化前端（Vue）      | Vue 3 + Element Plus + Pinia + Tailwind CSS           |
+| [big-screen](./big-screen)                 | 数据可视化大屏           | Vue 2 + ECharts + Ant Design Vue                      |
+| DA Studio                                  | 图片数据标注工具         | Vue 3 + Canvas 2D + Electron + Tailwind CSS           |
+| [emoji-mouse](./emoji-mouse)               | emoji 鼠标拖尾浏览器扩展 | Plasmo + React + Tailwind CSS                         |
+| [spell-check-editor](./spell-check-editor) | 拼写检查富文本编辑器     | React 19 + TinyMCE                                    |
 
 ### AI 简历优化系统
 
@@ -27,9 +27,9 @@
 
 `big-screen` 独立的大屏数据可视化项目，基于 Vue 2 构建，使用 ECharts 展示各类图表数据，支持多个业务专题模块切换。
 
-### 图片标注工具
+### DA Studio 图片标注工具
 
-`canvas-anno-vue` 独立的图片标注引擎，基于原生 Canvas 2D 实现，支持矩形、点、折线、多边形标注，具备完整的撤销/重做功能。
+`DA Studio` 是图片数据标注项目，支持三种构建模式：底层引擎包、Vue 组件库、Electron 桌面应用。底层基于原生 Canvas 2D，支持矩形、点、折线、多边形标注，具备撤销/重做、只读查看、数据集管理和 JSON/CSV 导出。
 
 ### 浏览器扩展
 

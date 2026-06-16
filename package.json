@@ -8,20 +8,21 @@
     "dev:aiagent": "pnpm --filter aiagent dev",
     "dev:aiagentfe-vue": "pnpm --filter aiagentfe-vue dev",
     "dev:aiagentfe-react": "pnpm --filter aiagentfe-react dev",
-    "dev:canvas-anno-vue": "pnpm --filter canvas-anno-vue dev",
+    "dev:da-studio": "pnpm --filter da-studio dev",
     "dev:emoji-mouse": "pnpm --filter emoji-mouse dev",
     "dev:spell-check-editor": "pnpm --filter spell-check-editor dev",
     "build:big-screen": "pnpm --filter big-screen build",
     "build:aiagent": "pnpm --filter aiagent build",
     "build:aiagentfe-vue": "pnpm --filter aiagentfe-vue build",
     "build:aiagentfe-react": "pnpm --filter aiagentfe-react build",
-    "build:canvas-anno-vue": "pnpm --filter canvas-anno-vue build",
+    "build:da-studio": "pnpm --filter da-studio build",
     "build:emoji-mouse": "pnpm --filter emoji-mouse build",
     "build:spell-check-editor": "pnpm --filter spell-check-editor build"
   },
   "pnpm": {
     "overrides": {
-      "vue-loader": "^15.11.1"
+      "vue-loader": "^15.11.1",
+      "vite": "^8.0.16"
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",

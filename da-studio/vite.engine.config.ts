@@ -8,10 +8,10 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/engine/index.ts'),
       formats: ['es', 'cjs'],
-      fileName: 'index',
+      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'cjs'}`
     },
     rolldownOptions: {
-      external: [],
-    },
-  },
+      external: []
+    }
+  }
 })

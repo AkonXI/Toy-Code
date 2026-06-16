@@ -4,6 +4,7 @@ export { default as ComparisonOverlay } from './components/ComparisonOverlay.vue
 export { default as ModeIcon } from './components/ModeIcon.vue'
 export { default as ToolIcon } from './components/ToolIcon.vue'
 export { useComparison, comparableShapes } from './composables/useComparison'
+export { DEFAULT_GROUPS } from './engine/utils'
 export type {
   ModeType,
   InteractionMode,
@@ -22,13 +23,5 @@ export type {
   HandlerReturn,
   ControllerOpts
 } from './engine/types'
-export {
-  DEFAULT_GROUPS,
-  buildGroupMap,
-  deepCopy,
-  ImageLayer,
-  ShapeLayer,
-  AnnotationController
-} from './engine'
 export { matchTrajectory, resample, computeBBox, computeOBB, dist2, dist } from './matcher'
 export type { BBox, OBB, MatchResult, MatcherOptions } from './matcher'

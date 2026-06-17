@@ -3,8 +3,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronAPI', {
   dataset: {
     list: () => ipcRenderer.invoke('dataset:list'),
-    create: (n: string, d: string, t: string, g: string) => ipcRenderer.invoke('dataset:create', n, d, t, g),
-    update: (id: number, n: string, d: string, t: string, g: string) => ipcRenderer.invoke('dataset:update', id, n, d, t, g),
+    create: (n: string, d: string, t: string, g: string) =>
+      ipcRenderer.invoke('dataset:create', n, d, t, g),
+    update: (id: number, n: string, d: string, t: string, g: string) =>
+      ipcRenderer.invoke('dataset:update', id, n, d, t, g),
     delete: (id: number) => ipcRenderer.invoke('dataset:delete', id)
   },
   image: {
@@ -17,7 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   annotation: {
     get: (iid: number) => ipcRenderer.invoke('annotation:get', iid),
-    save: (iid: number, shapes: string, meta: string) => ipcRenderer.invoke('annotation:save', iid, shapes, meta),
+    save: (iid: number, shapes: string, meta: string) =>
+      ipcRenderer.invoke('annotation:save', iid, shapes, meta),
     skip: (iid: number) => ipcRenderer.invoke('annotation:skip', iid),
     export: (did: number, format: string) => ipcRenderer.invoke('annotation:export', did, format)
   },

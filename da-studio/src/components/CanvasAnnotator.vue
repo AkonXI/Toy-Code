@@ -32,7 +32,7 @@
             <ModeIcon type="draw" />
           </button>
         </div>
-        <div class="h-px mx-1 bg-[var(--da-annotator-divider)]"></div>
+        <div class="h-px mx-1 bg-[var(--da-annotator-divider)]" />
         <!-- Mode 2x2 -->
         <div class="grid grid-cols-2 gap-1">
           <button
@@ -46,13 +46,13 @@
             :disabled="
               !isModeEnabled(m.type) || currentInteractionMode === 'select' || props.readonly
             "
-            @click="setMode(m.type)"
             :title="`${m.label} (${m.key})`"
+            @click="setMode(m.type)"
           >
             <ModeIcon :type="m.type" />
           </button>
         </div>
-        <div class="h-px mx-1 bg-[var(--da-annotator-divider)]"></div>
+        <div class="h-px mx-1 bg-[var(--da-annotator-divider)]" />
         <!-- Group colors 2x2 -->
         <div class="grid grid-cols-2 gap-1">
           <button
@@ -61,41 +61,41 @@
             class="aspect-square border-2 rounded-md cursor-pointer transition-all duration-[120ms] hover:opacity-85 disabled:opacity-30 disabled:cursor-default border-transparent"
             :class="{ '!border-[var(--da-annotator-group-selected-border)]': group === g.name }"
             :disabled="props.readonly"
-            @click="setGroup(g.name)"
             :title="`${g.label} (Alt+${i + 1})`"
             :style="{ background: g.stroke }"
-          ></button>
+            @click="setGroup(g.name)"
+          />
         </div>
-        <div class="h-px mx-1 bg-[var(--da-annotator-divider)]"></div>
+        <div class="h-px mx-1 bg-[var(--da-annotator-divider)]" />
         <!-- Actions 2x2 -->
         <div class="grid grid-cols-2 gap-1">
           <button
             class="aspect-square border rounded-md cursor-pointer flex items-center justify-center transition-all duration-150 relative disabled:opacity-40 disabled:cursor-default bg-[var(--da-annotator-tool-bg)] text-[var(--da-annotator-tool-fg)] border-[var(--da-annotator-border-strong)] hover:enabled:bg-[var(--da-annotator-tool-hover-bg)] active:enabled:bg-[var(--da-annotator-tool-active-bg)]"
-            @click="getEngine()?.zoom(-0.1)"
             title="缩小 (Ctrl+-)"
+            @click="getEngine()?.zoom(-0.1)"
           >
             <ToolIcon type="zoom-out" />
           </button>
           <button
             class="aspect-square border rounded-md cursor-pointer flex items-center justify-center transition-all duration-150 relative disabled:opacity-40 disabled:cursor-default bg-[var(--da-annotator-tool-bg)] text-[var(--da-annotator-tool-fg)] border-[var(--da-annotator-border-strong)] hover:enabled:bg-[var(--da-annotator-tool-hover-bg)] active:enabled:bg-[var(--da-annotator-tool-active-bg)]"
-            @click="getEngine()?.zoom(0.1)"
             title="放大 (Ctrl+=)"
+            @click="getEngine()?.zoom(0.1)"
           >
             <ToolIcon type="zoom-in" />
           </button>
           <button
             class="aspect-square border rounded-md cursor-pointer flex items-center justify-center transition-all duration-150 relative disabled:opacity-40 disabled:cursor-default bg-[var(--da-annotator-tool-bg)] text-[var(--da-annotator-tool-fg)] border-[var(--da-annotator-border-strong)] hover:enabled:bg-[var(--da-annotator-tool-hover-bg)] active:enabled:bg-[var(--da-annotator-tool-active-bg)]"
-            @click="undo"
             :disabled="!canUndo || props.readonly"
             title="撤销 (Ctrl+Z)"
+            @click="undo"
           >
             <ToolIcon type="undo" />
           </button>
           <button
             class="aspect-square border rounded-md cursor-pointer flex items-center justify-center transition-all duration-150 relative disabled:opacity-40 disabled:cursor-default bg-[var(--da-annotator-tool-bg)] text-[var(--da-annotator-tool-fg)] border-[var(--da-annotator-border-strong)] hover:enabled:bg-[var(--da-annotator-tool-hover-bg)] active:enabled:bg-[var(--da-annotator-tool-active-bg)]"
-            @click="redo"
             :disabled="!canRedo || props.readonly"
             title="重做 (Ctrl+Y)"
+            @click="redo"
           >
             <ToolIcon type="redo" />
           </button>
@@ -105,8 +105,8 @@
           v-show="(polygonActive || polylineActive) && !props.readonly"
           class="px-1.5 py-[5px] text-[10px] font-bold border rounded-md disabled:cursor-default text-[var(--da-annotator-action-fg)] bg-[var(--da-annotator-primary-bg)] border-[var(--da-annotator-primary-border)] hover:enabled:bg-[var(--da-annotator-primary-hover-bg)] disabled:bg-[var(--da-annotator-primary-disabled-bg)] disabled:border-[var(--da-annotator-primary-disabled-bg)]"
           :disabled="!canComplete"
-          @click="completeCurrent"
           title="完成 (Enter)"
+          @click="completeCurrent"
         >
           完成
         </button>
@@ -114,16 +114,16 @@
         <button
           v-show="hasSelected && !props.readonly"
           class="px-1.5 py-[5px] text-[10px] font-bold border rounded-md text-[var(--da-annotator-action-fg)] bg-[var(--da-annotator-danger-bg)] border-[var(--da-annotator-danger-border)] hover:enabled:bg-[var(--da-annotator-danger-hover-bg)]"
-          @click="deleteSelected"
           title="删除选中 (Backspace)"
+          @click="deleteSelected"
         >
           删除
         </button>
         <button
           class="aspect-square border rounded-md cursor-pointer flex items-center justify-center transition-all duration-150 relative disabled:opacity-40 disabled:cursor-default mt-auto bg-[var(--da-annotator-tool-bg)] text-[var(--da-annotator-tool-fg)] border-[var(--da-annotator-border-strong)] hover:enabled:!bg-[var(--da-annotator-danger-soft-bg)] hover:enabled:!text-[var(--da-annotator-danger-soft-fg)] hover:enabled:!border-[var(--da-annotator-danger-soft-border)] active:enabled:bg-[var(--da-annotator-tool-active-bg)]"
           :disabled="props.readonly"
-          @click="clearAll"
           title="清空全部 (Delete)"
+          @click="clearAll"
         >
           <ToolIcon type="trash" />
         </button>
@@ -133,13 +133,13 @@
       <div
         class="w-[600px] h-[600px] shrink-0 relative rounded-lg border overflow-hidden bg-[var(--da-annotator-canvas-bg)] border-[var(--da-annotator-border)]"
       >
-        <canvas class="absolute top-0 left-0 z-10" ref="bgCanvas" width="600" height="600"></canvas>
+        <canvas ref="bgCanvas" class="absolute top-0 left-0 z-10" width="600" height="600" />
         <canvas
-          class="absolute top-0 left-0 z-20 cursor-crosshair"
           ref="shapeCanvas"
+          class="absolute top-0 left-0 z-20 cursor-crosshair"
           width="600"
           height="600"
-        ></canvas>
+        />
         <slot name="canvas-overlay" />
       </div>
 
@@ -152,7 +152,7 @@
         >
           标注列表
         </div>
-        <div class="flex-1 overflow-y-auto p-2" ref="listRef">
+        <div ref="listRef" class="flex-1 overflow-y-auto p-2">
           <div
             v-if="shapes.length === 0"
             class="text-sm text-center mt-10 text-[var(--da-annotator-subtle)]"

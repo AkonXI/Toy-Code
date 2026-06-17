@@ -3,12 +3,15 @@ import { join } from 'path'
 
 let mainWindow: BrowserWindow | null = null
 
-export function getMainWindow(): BrowserWindow | null { return mainWindow }
+export function getMainWindow(): BrowserWindow | null {
+  return mainWindow
+}
 
 export function createMainWindow(currentDirname: string): BrowserWindow {
   mainWindow = new BrowserWindow({
     title: 'DA Studio',
-    width: 1200, height: 800,
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: join(currentDirname, 'preload.mjs'),
       contextIsolation: true,

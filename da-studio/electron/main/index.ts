@@ -29,6 +29,12 @@ process.on('message', (message) => {
     }
   }
 })
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createMainWindow(currentDirname) })
-app.on('before-quit', () => { closeDatabase() })
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createMainWindow(currentDirname)
+})
+app.on('before-quit', () => {
+  closeDatabase()
+})

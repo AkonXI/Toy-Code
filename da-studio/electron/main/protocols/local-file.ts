@@ -14,6 +14,17 @@ export function registerLocalFileProtocol(): void {
     return new Response('Not Found', { status: 404 })
   })
 }
-function localFileUrlToPath(url: string): string | null { try { return fileURLToPath(url.replace(/^local-file:/, 'file:')) } catch { return null } }
-function isInsideUploadDir(fp: string): boolean { const rel = relative(normalize(resolve(getUploadDir())), normalize(resolve(fp))); return Boolean(rel) && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel) }
-function normalize(p: string): string { return platform === 'win32' ? p.toLowerCase() : p }
+function localFileUrlToPath(url: string): string | null {
+  try {
+    return fileURLToPath(url.replace(/^local-file:/, 'file:'))
+  } catch {
+    return null
+  }
+}
+function isInsideUploadDir(fp: string): boolean {
+  const rel = relative(normalize(resolve(getUploadDir())), normalize(resolve(fp)))
+  return Boolean(rel) && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)
+}
+function normalize(p: string): string {
+  return platform === 'win32' ? p.toLowerCase() : p
+}

@@ -1,7 +1,16 @@
 import { execute, getDb, queryAll, run } from '../connection'
 
-export function listDatasets() {
-  return queryAll('SELECT * FROM datasets ORDER BY created_at DESC')
+export interface DatasetRow {
+  id: number
+  name: string
+  description: string
+  tools: string
+  groups: string
+  created_at: string
+}
+
+export function listDatasets(): DatasetRow[] {
+  return queryAll<DatasetRow>('SELECT * FROM datasets ORDER BY created_at DESC')
 }
 
 export function createDataset(name: string, description: string, tools: string, groups: string) {

@@ -1,6 +1,23 @@
 import { queryOne, run, queryAll } from '../connection'
-export function getAnnotation(imageId: number) {
-  return queryOne('SELECT * FROM annotations WHERE image_id = ?', [imageId])
+
+interface AnnotationRow {
+  id: number
+  image_id: number
+  shapes: string
+  meta: string
+  updated_at: string
+}
+
+interface AnnotationJoinRow {
+  image_id: number
+  image_md5: string
+  image_name: string
+  shapes: string
+  meta: string
+}
+
+export function getAnnotation(imageId: number): AnnotationRow | undefined {
+  return queryOne<AnnotationRow>('SELECT * FROM annotations WHERE image_id = ?', [imageId])
 }
 export function saveAnnotation(imageId: number, shapes: string, meta: string): void {
   if (getAnnotation(imageId))
@@ -14,17 +31,19 @@ export function saveAnnotation(imageId: number, shapes: string, meta: string): v
       [imageId, shapes, meta]
     )
 }
-export function getDatasetAnnotations(datasetId: number) {
-  return queryAll(
+export function getDatasetAnnotations(datasetId: number): AnnotationJoinRow[] {
+  return queryAll<AnnotationJoinRow>(
     'SELECT a.image_id, i.md5 AS image_md5, i.original_name AS image_name, a.shapes, a.meta FROM annotations a JOIN images i ON i.id = a.image_id WHERE i.dataset_id = ? AND a.shapes != ? ORDER BY i.created_at ASC',
     [datasetId, '[]']
   )
 }
-export function getAnnotationStatuses(datasetId: number) {
-  return queryAll(
+export function getAnnotationStatuses(
+  datasetId: number
+): { image_id: number; annotated: boolean; skipped: boolean }[] {
+  return queryAll<{ image_id: number; annotated: number; skipped: number }>(
     "SELECT i.id AS image_id, CASE WHEN a.id IS NOT NULL AND a.shapes != '[]' THEN 1 ELSE 0 END AS annotated, CASE WHEN a.id IS NOT NULL AND a.shapes = '[]' AND json_extract(a.meta, '$.skipped') = 1 THEN 1 ELSE 0 END AS skipped FROM images i LEFT JOIN annotations a ON a.image_id = i.id WHERE i.dataset_id = ? ORDER BY i.created_at ASC",
     [datasetId]
-  ).map((r: any) => ({
+  ).map((r) => ({
     image_id: r.image_id,
     annotated: Boolean(r.annotated),
     skipped: Boolean(r.skipped)

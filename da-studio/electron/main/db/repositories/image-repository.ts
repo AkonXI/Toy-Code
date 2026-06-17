@@ -1,11 +1,22 @@
 import { execute, getDb, queryAll, queryOne } from '../connection'
 
-export function listImages(datasetId: number) {
-  return queryAll('SELECT * FROM images WHERE dataset_id = ? ORDER BY created_at ASC', [datasetId])
+export interface ImageRow {
+  id: number
+  dataset_id: number
+  filename: string
+  original_name: string
+  md5: string
+  width: number
+  height: number
+  created_at: string
 }
 
-export function getImage(id: number) {
-  return queryOne('SELECT * FROM images WHERE id = ?', [id])
+export function listImages(datasetId: number): ImageRow[] {
+  return queryAll<ImageRow>('SELECT * FROM images WHERE dataset_id = ? ORDER BY created_at ASC', [datasetId])
+}
+
+export function getImage(id: number): ImageRow | undefined {
+  return queryOne<ImageRow>('SELECT * FROM images WHERE id = ?', [id])
 }
 
 export function createImage(

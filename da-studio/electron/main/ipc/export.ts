@@ -39,7 +39,7 @@ export function registerExportIpcHandlers(): void {
       .map((row: any) => ({ ...row, parsedShapes: parseShapes(row.shapes) }))
       .filter((row: any) => row.parsedShapes.length > 0)
     const groupMap = buildGroupIdMap(
-      parseGroups((listDatasets() as any[]).find((d) => d.id === datasetId)?.groups ?? null)
+      parseGroups(listDatasets().find((d) => d.id === datasetId)?.groups ?? null)
     )
     const saveResult = await dialog.showSaveDialog({
       filters: [

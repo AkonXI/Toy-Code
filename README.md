@@ -12,7 +12,7 @@
 | [aiagentfe-react](./aiagentfe-react)       | 简历优化前端（React）    | React 19 + Ant Design 6 + Zustand + Tailwind CSS      |
 | [aiagentfe-vue](./aiagentfe-vue)           | 简历优化前端（Vue）      | Vue 3 + Element Plus + Pinia + Tailwind CSS           |
 | [big-screen](./big-screen)                 | 数据可视化大屏           | Vue 2 + ECharts + Ant Design Vue                      |
-| DA Studio                                  | 图片数据标注工具         | Vue 3 + Canvas 2D + Electron + Tailwind CSS           |
+| [DA Studio](./da-studio)                   | 图片数据标注工具         | Vue 3 + Canvas 2D + Electron + Tailwind CSS           |
 | [emoji-mouse](./emoji-mouse)               | emoji 鼠标拖尾浏览器扩展 | Plasmo + React + Tailwind CSS                         |
 | [spell-check-editor](./spell-check-editor) | 拼写检查富文本编辑器     | React 19 + TinyMCE                                    |
 

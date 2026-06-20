@@ -1,3 +1,4 @@
+import { Viewport } from './viewport'
 import { buildGroupMap, DEFAULT_GROUPS } from './utils'
 import type {
   Point,
@@ -34,12 +35,7 @@ export class ShapeLayer {
   shapes: Shape[]
   /** 当前选中图形在 shapes 中的索引，-1 表示无选中 */
   current: number
-  /** 视图缩放倍数 */
-  scale: number
-  /** 视图 X 方向平移量（图像坐标） */
-  translateX: number
-  /** 视图 Y 方向平移量（图像坐标） */
-  translateY: number
+  _viewport: Viewport
   _groups: Record<string, Group>
   _defaultGroup: Group
   _group: string
@@ -51,17 +47,16 @@ export class ShapeLayer {
   /**
    * 初始化图形图层
    * @param canvas - 目标 Canvas 元素
+   * @param viewport - 视口状态
    */
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, viewport: Viewport) {
     this.canvas = canvas
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Failed to get 2d context')
     this.ctx = ctx
     this.shapes = []
     this.current = -1
-    this.scale = 1
-    this.translateX = 0
-    this.translateY = 0
+    this._viewport = viewport
     this._groups = buildGroupMap(DEFAULT_GROUPS)
     this._defaultGroup = DEFAULT_GROUPS[0]
     this._group = DEFAULT_GROUPS[0].name
@@ -88,7 +83,10 @@ export class ShapeLayer {
    * @returns 图像坐标系下的 Point
    */
   toImage(px: number, py: number): Point {
-    return { x: px / this.scale + this.translateX, y: py / this.scale + this.translateY }
+    return {
+      x: px / this._viewport.scale + this._viewport.translateX,
+      y: py / this._viewport.scale + this._viewport.translateY
+    }
   }
 
   /**
@@ -98,7 +96,10 @@ export class ShapeLayer {
    * @returns 画布像素坐标系下的 Point
    */
   toCanvas(ix: number, iy: number): Point {
-    return { x: (ix - this.translateX) * this.scale, y: (iy - this.translateY) * this.scale }
+    return {
+      x: (ix - this._viewport.translateX) * this._viewport.scale,
+      y: (iy - this._viewport.translateY) * this._viewport.scale
+    }
   }
 
   /* ---- Viewport transforms ---- */
@@ -108,8 +109,7 @@ export class ShapeLayer {
    * @param multi - 新的缩放倍数
    */
   zoom(multi: number): void {
-    this.scale = multi
-    this.drawHistory()
+    this._viewport.zoom(multi)
   }
 
   /**
@@ -118,9 +118,7 @@ export class ShapeLayer {
    * @param dy - 画布像素 Y 方向偏移量
    */
   pan(dx: number, dy: number): void {
-    this.translateX += dx / this.scale
-    this.translateY += dy / this.scale
-    this.drawHistory()
+    this._viewport.pan(dx, dy)
   }
 
   /* ---- Shape management ---- */
@@ -136,6 +134,11 @@ export class ShapeLayer {
   popShape(): void {
     this.shapes.pop()
   }
+  /** 触发视口重绘（由 Viewport.onChange 回调调用） */
+  redraw(): void {
+    this.drawHistory()
+  }
+
   /** 清空所有图形，重置选中状态，并重绘 */
   clearAll(): void {
     this.shapes = []
@@ -301,9 +304,9 @@ export class ShapeLayer {
       const hw = s.w / 2,
         hh = s.h / 2
 
-      const cr = 7 / this.scale
-      const er = 6 / this.scale
-      const rr = 6 / this.scale
+      const cr = 7 / this._viewport.scale
+      const er = 6 / this._viewport.scale
+      const rr = 6 / this._viewport.scale
 
       let handle: Handle = 'OUT'
 
@@ -316,7 +319,7 @@ export class ShapeLayer {
       else if (Math.hypot(local.x + hw, local.y) <= er) handle = 'L'
       else if (Math.hypot(local.x - hw, local.y) <= er) handle = 'R'
       else {
-        const rotHy = -hh - 22 / this.scale
+        const rotHy = -hh - 22 / this._viewport.scale
         if (Math.hypot(local.x, local.y - rotHy) <= rr) handle = 'ROTATE'
       }
 
@@ -342,12 +345,12 @@ export class ShapeLayer {
    * @returns 视口四边（图像坐标），外扩 30/scale 避免边缘闪烁
    */
   _getViewportBounds(): { left: number; top: number; right: number; bottom: number } {
-    const padding = 30 / this.scale
+    const padding = 30 / this._viewport.scale
     return {
-      left: this.translateX - padding,
-      top: this.translateY - padding,
-      right: this.translateX + this.canvas.width / this.scale + padding,
-      bottom: this.translateY + this.canvas.height / this.scale + padding
+      left: this._viewport.translateX - padding,
+      top: this._viewport.translateY - padding,
+      right: this._viewport.translateX + this.canvas.width / this._viewport.scale + padding,
+      bottom: this._viewport.translateY + this.canvas.height / this._viewport.scale + padding
     }
   }
 
@@ -391,7 +394,7 @@ export class ShapeLayer {
       )
     }
     if (s.type === 'point') {
-      const r = 6 / this.scale
+      const r = 6 / this._viewport.scale
       return !(
         s.x + r < bounds.left ||
         s.x - r > bounds.right ||
@@ -542,10 +545,10 @@ export class ShapeLayer {
    * @param highlight - 是否高亮
    */
   _paintRect(s: RectShape, highlight: boolean): void {
-    const cx = (s.x - this.translateX) * this.scale
-    const cy = (s.y - this.translateY) * this.scale
-    const cw = s.w * this.scale
-    const ch = s.h * this.scale
+    const cx = (s.x - this._viewport.translateX) * this._viewport.scale
+    const cy = (s.y - this._viewport.translateY) * this._viewport.scale
+    const cw = s.w * this._viewport.scale
+    const ch = s.h * this._viewport.scale
     const c = this._groups[s.group] || this._defaultGroup
 
     this.ctx.save()
@@ -765,10 +768,10 @@ export class ShapeLayer {
   _paintLiveRect(): void {
     if (!this._liveRect) return
     const s = this._liveRect
-    const cx = (s.x - this.translateX) * this.scale
-    const cy = (s.y - this.translateY) * this.scale
-    const cw = s.w * this.scale
-    const ch = s.h * this.scale
+    const cx = (s.x - this._viewport.translateX) * this._viewport.scale
+    const cy = (s.y - this._viewport.translateY) * this._viewport.scale
+    const cw = s.w * this._viewport.scale
+    const ch = s.h * this._viewport.scale
 
     this.ctx.save()
     this.ctx.translate(cx, cy)

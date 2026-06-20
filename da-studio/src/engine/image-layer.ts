@@ -1,24 +1,23 @@
+import { Viewport } from './viewport'
+
 /** 图像渲染层，负责加载和绘制底图，支持缩放与平移 */
 export class ImageLayer {
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
   img: HTMLImageElement | null
-  scale: number
-  translateX: number
-  translateY: number
+  _viewport: Viewport
 
   /**
    * @param canvas - 目标画布元素
+   * @param viewport - 视口状态
    */
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, viewport: Viewport) {
     this.canvas = canvas
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Failed to get 2d context')
     this.ctx = ctx
     this.img = null
-    this.scale = 1
-    this.translateX = 0
-    this.translateY = 0
+    this._viewport = viewport
   }
 
   /**
@@ -41,16 +40,23 @@ export class ImageLayer {
     })
   }
 
-  /** 内部重绘：清空画布 → 按当前 translate + scale 绘制图片 */
+  /** 内部重绘：清空画布 → 按 transform 绘制整张图片（不裁剪） */
   _draw(): void {
     this.clear()
+    if (!this.img) return
     this.ctx.save()
-    this.ctx.translate(-this.translateX * this.scale, -this.translateY * this.scale)
-    this.ctx.scale(this.scale, this.scale)
-    if (this.img) {
-      this.ctx.drawImage(this.img, 0, 0)
-    }
+    this.ctx.translate(
+      -this._viewport.translateX * this._viewport.scale,
+      -this._viewport.translateY * this._viewport.scale
+    )
+    this.ctx.scale(this._viewport.scale, this._viewport.scale)
+    this.ctx.drawImage(this.img, 0, 0)
     this.ctx.restore()
+  }
+
+  /** 触发视口重绘（由 Viewport.onChange 回调调用） */
+  redraw(): void {
+    this._draw()
   }
 
   /** 清空整个画布 */
@@ -63,8 +69,7 @@ export class ImageLayer {
    * @param multi - 缩放倍数（1 = 原始大小）
    */
   zoom(multi: number): void {
-    this.scale = multi
-    this._draw()
+    this._viewport.zoom(multi)
   }
 
   /**
@@ -73,8 +78,6 @@ export class ImageLayer {
    * @param dy - 画布像素偏移量（垂直）
    */
   pan(dx: number, dy: number): void {
-    this.translateX += dx / this.scale
-    this.translateY += dy / this.scale
-    this._draw()
+    this._viewport.pan(dx, dy)
   }
 }

@@ -254,22 +254,102 @@ export class ShapeLayer {
     return 'OUT'
   }
 
+  /* ---- Viewport culling ---- */
+
+  _getViewportBounds(): { left: number; top: number; right: number; bottom: number } {
+    const padding = 30 / this.scale
+    return {
+      left: this.translateX - padding,
+      top: this.translateY - padding,
+      right: this.translateX + this.canvas.width / this.scale + padding,
+      bottom: this.translateY + this.canvas.height / this.scale + padding
+    }
+  }
+
+  _isShapeVisible(
+    s: Shape,
+    bounds: { left: number; top: number; right: number; bottom: number }
+  ): boolean {
+    if (s.current) return true
+    if (s.type === 'rect') {
+      const hw = s.w / 2,
+        hh = s.h / 2
+      const cos = Math.cos(s.rotation || 0)
+      const sin = Math.sin(s.rotation || 0)
+      const cs = [
+        { x: s.x - hw * cos - -hh * sin, y: s.y - hw * sin + -hh * cos },
+        { x: s.x + hw * cos - -hh * sin, y: s.y + hw * sin + -hh * cos },
+        { x: s.x + hw * cos - hh * sin, y: s.y + hw * sin + hh * cos },
+        { x: s.x - hw * cos - hh * sin, y: s.y - hw * sin + hh * cos }
+      ]
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity
+      for (const c of cs) {
+        if (c.x < minX) minX = c.x
+        if (c.x > maxX) maxX = c.x
+        if (c.y < minY) minY = c.y
+        if (c.y > maxY) maxY = c.y
+      }
+      return !(
+        maxX < bounds.left ||
+        minX > bounds.right ||
+        maxY < bounds.top ||
+        minY > bounds.bottom
+      )
+    }
+    if (s.type === 'point') {
+      const r = 6 / this.scale
+      return !(
+        s.x + r < bounds.left ||
+        s.x - r > bounds.right ||
+        s.y + r < bounds.top ||
+        s.y - r > bounds.bottom
+      )
+    }
+    if (s.type === 'polyline' || s.type === 'polygon') {
+      if (s.points.length === 0) return false
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity
+      for (const p of s.points) {
+        if (p.x < minX) minX = p.x
+        if (p.x > maxX) maxX = p.x
+        if (p.y < minY) minY = p.y
+        if (p.y > maxY) maxY = p.y
+      }
+      return !(
+        maxX < bounds.left ||
+        minX > bounds.right ||
+        maxY < bounds.top ||
+        minY > bounds.bottom
+      )
+    }
+    return true
+  }
+
   /* ---- Drawing ---- */
 
   drawHistory(e?: MouseEvent): void {
     const hitIdx = e ? this.hitTest(e.offsetX, e.offsetY) : -1
+    const bounds = this._getViewportBounds()
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     for (let i = 0; i < this.shapes.length; i++) {
-      this._paintShape(i, this.shapes[i], i === hitIdx)
+      if (this._isShapeVisible(this.shapes[i], bounds)) {
+        this._paintShape(i, this.shapes[i], i === hitIdx)
+      }
     }
     this._paintLiveRect()
-    this._drawShapeLabels()
+    this._drawShapeLabels(bounds)
   }
 
-  _drawShapeLabels(): void {
+  _drawShapeLabels(bounds: { left: number; top: number; right: number; bottom: number }): void {
     if (this.interactionMode !== 'select') return
     const ctx = this.ctx
     this.shapes.forEach((s, i) => {
+      if (!this._isShapeVisible(s, bounds)) return
       if ((s.type === 'polygon' || s.type === 'polyline') && !s.complete) return
       const c = this._groups[s.group] || this._defaultGroup
       const bg = s.current ? c.stroke : hexToRgba(c.stroke, 0.5)

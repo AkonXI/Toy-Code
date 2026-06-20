@@ -23,7 +23,7 @@ export function createMainWindow(currentDirname: string): BrowserWindow {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(join(currentDirname, '../dist/electron/renderer/index.html'))
+    mainWindow.loadFile(join(currentDirname, '../dist/index.html'))
   }
   return mainWindow
 }

@@ -1,4 +1,4 @@
-import type { Viewport } from './viewport'
+import { Viewport } from './viewport'
 
 /** 图像渲染层，负责加载和绘制底图，支持缩放与平移 */
 export class ImageLayer {
@@ -9,7 +9,7 @@ export class ImageLayer {
 
   /**
    * @param canvas - 目标画布元素
-   * @param viewport - 共享视口
+   * @param viewport - 视口状态
    */
   constructor(canvas: HTMLCanvasElement, viewport: Viewport) {
     this.canvas = canvas
@@ -40,32 +40,44 @@ export class ImageLayer {
     })
   }
 
-  /** 内部重绘：清空画布 → 仅裁剪当前视口内的图像部分绘制 */
+  /** 内部重绘：清空画布 → 按 transform 绘制整张图片（不裁剪） */
   _draw(): void {
     this.clear()
     if (!this.img) return
-    const { scale, translateX, translateY } = this._viewport
-    const imgW = this.img.width
-    const imgH = this.img.height
-    const vw = this.canvas.width / scale
-    const vh = this.canvas.height / scale
+    this.ctx.save()
+    this.ctx.translate(
+      -this._viewport.translateX * this._viewport.scale,
+      -this._viewport.translateY * this._viewport.scale
+    )
+    this.ctx.scale(this._viewport.scale, this._viewport.scale)
+    this.ctx.drawImage(this.img, 0, 0)
+    this.ctx.restore()
+  }
 
-    const sx = Math.max(0, translateX)
-    const sy = Math.max(0, translateY)
-    const sw = Math.min(imgW - sx, vw)
-    const sh = Math.min(imgH - sy, vh)
-    if (sw <= 0 || sh <= 0) return
-
-    const dx = Math.max(0, -translateX * scale)
-    const dy = Math.max(0, -translateY * scale)
-    const dw = sw * scale
-    const dh = sh * scale
-
-    this.ctx.drawImage(this.img, sx, sy, sw, sh, dx, dy, dw, dh)
+  /** 触发视口重绘（由 Viewport.onChange 回调调用） */
+  redraw(): void {
+    this._draw()
   }
 
   /** 清空整个画布 */
   clear(): void {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+  }
+
+  /**
+   * 设置缩放倍率并重绘
+   * @param multi - 缩放倍数（1 = 原始大小）
+   */
+  zoom(multi: number): void {
+    this._viewport.zoom(multi)
+  }
+
+  /**
+   * 平移视口
+   * @param dx - 画布像素偏移量（水平）
+   * @param dy - 画布像素偏移量（垂直）
+   */
+  pan(dx: number, dy: number): void {
+    this._viewport.pan(dx, dy)
   }
 }

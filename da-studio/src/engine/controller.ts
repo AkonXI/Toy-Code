@@ -56,9 +56,9 @@ export class AnnotationController {
     })
     this.currentGroup = groups[0].name
 
-    this._viewport = new Viewport()
     this._historyStack = []
     this._historyIndex = -1
+    this._viewport = new Viewport()
     this._state = {
       drawing: false,
       dragging: false,
@@ -117,8 +117,8 @@ export class AnnotationController {
     shapeCanvas.height = 600
 
     this._viewport.onChange = () => {
-      this._imageLayer?._draw()
-      this._shapeLayer?.drawHistory()
+      this._imageLayer?.redraw()
+      this._shapeLayer?.redraw()
     }
 
     return this._imageLayer.loadImage(src).then(() => {
@@ -246,6 +246,7 @@ export class AnnotationController {
    * @param delta - 增量步长（>0 放大, <0 缩小），受 _minScale/_maxScale 限制
    */
   zoom(delta: number): void {
+    if (!this._shapeLayer) return
     const newRate = this._viewport.scale + delta
     if (newRate < this._minScale || newRate > this._maxScale) return
     this._viewport.zoom(newRate)
@@ -258,14 +259,15 @@ export class AnnotationController {
    * @param dy - 画布像素偏移（垂直）
    */
   pan(dx: number, dy: number): void {
+    if (!this._shapeLayer) return
     this._viewport.pan(dx, dy)
     this._notify()
   }
 
   /** 重置缩放为 1×，平移恢复 0，同时同步到 ImageLayer 和 ShapeLayer */
   resetZoom(): void {
+    if (!this._shapeLayer) return
     this._viewport.reset()
-    this._notify()
   }
 
   /** 取消正在执行的聚焦动画 */
@@ -1159,7 +1161,7 @@ export class AnnotationController {
     }
   }
 
-  /** 重置缩放为 1× 并归零平移（同时恢复 ImageLayer 和 ShapeLayer 的视口） */
+  /** 重置缩放为 1× 并归零平redraw()（同时恢复 ImageLayer 和 ShapeLayer 的视口） */
   resetView(): void {
     this._viewport.reset()
   }

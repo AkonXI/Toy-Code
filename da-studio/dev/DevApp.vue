@@ -277,7 +277,7 @@ function generateRandomShapes(count: number): Shape[] {
   return shapes
 }
 
-const preloadedShapes: Shape[] = generateRandomShapes(randInt(500, 800))
+const preloadedShapes: Shape[] = generateRandomShapes(randInt(100, 200))
 
 let debugTimer: ReturnType<typeof setInterval> | null = null
 let restoringDebugScroll = false
@@ -307,11 +307,13 @@ function readEngineSnapshot(): Record<string, unknown> | null {
     historyIndex: engine._historyIndex,
     historyLength: engine._historyStack?.length ?? 0,
     state: engine._state,
+    viewport: {
+      scale: engine._viewport.scale,
+      translateX: engine._viewport.translateX,
+      translateY: engine._viewport.translateY
+    },
     shapeLayer: engine._shapeLayer
       ? {
-          scale: engine._shapeLayer.scale,
-          translateX: engine._shapeLayer.translateX,
-          translateY: engine._shapeLayer.translateY,
           current: engine._shapeLayer.current,
           shapeCount: engine._shapeLayer.shapes?.length ?? 0
         }

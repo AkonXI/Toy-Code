@@ -1,6 +1,7 @@
 import { DEFAULT_GROUPS, deepCopy, normalizeAngle } from './utils'
 import { ImageLayer } from './image-layer'
 import { ShapeLayer } from './shape-layer'
+import { Viewport } from './viewport'
 import type {
   Shape,
   Group,
@@ -34,7 +35,7 @@ export class AnnotationController {
   _historyStack: { shapes: Shape[]; interactionMode: InteractionMode; mode: string }[]
   _historyIndex: number
   _state: ControllerState
-  _scaleRate: number
+  _viewport: Viewport
   _minScale: number
   _maxScale: number
   _rafId: number | null
@@ -55,6 +56,7 @@ export class AnnotationController {
     })
     this.currentGroup = groups[0].name
 
+    this._viewport = new Viewport()
     this._historyStack = []
     this._historyIndex = -1
     this._state = {
@@ -77,7 +79,6 @@ export class AnnotationController {
       drawStart: null
     }
 
-    this._scaleRate = 1
     this._minScale = 0.25
     this._maxScale = 3
     this._rafId = null
@@ -99,8 +100,8 @@ export class AnnotationController {
     shapeCanvas: HTMLCanvasElement,
     imageSrc?: string
   ): Promise<void> {
-    this._imageLayer = new ImageLayer(imageCanvas)
-    this._shapeLayer = new ShapeLayer(shapeCanvas)
+    this._imageLayer = new ImageLayer(imageCanvas, this._viewport)
+    this._shapeLayer = new ShapeLayer(shapeCanvas, this._viewport)
     this._shapeLayer.mode = this.mode
     this._boundHandlers = this._bindHandlers()
     const h = this._boundHandlers
@@ -114,6 +115,11 @@ export class AnnotationController {
     const src = imageSrc || this._generateSampleImage()
     shapeCanvas.width = 600
     shapeCanvas.height = 600
+
+    this._viewport.onChange = () => {
+      this._imageLayer?._draw()
+      this._shapeLayer?.drawHistory()
+    }
 
     return this._imageLayer.loadImage(src).then(() => {
       this._shapeLayer!.drawHistory()
@@ -240,12 +246,9 @@ export class AnnotationController {
    * @param delta - 增量步长（>0 放大, <0 缩小），受 _minScale/_maxScale 限制
    */
   zoom(delta: number): void {
-    if (!this._imageLayer || !this._shapeLayer) return
-    const newRate = this._scaleRate + delta
+    const newRate = this._viewport.scale + delta
     if (newRate < this._minScale || newRate > this._maxScale) return
-    this._scaleRate = newRate
-    this._imageLayer.zoom(this._scaleRate)
-    this._shapeLayer.zoom(this._scaleRate)
+    this._viewport.zoom(newRate)
     this._notify()
   }
 
@@ -255,18 +258,13 @@ export class AnnotationController {
    * @param dy - 画布像素偏移（垂直）
    */
   pan(dx: number, dy: number): void {
-    if (!this._imageLayer || !this._shapeLayer) return
-    this._imageLayer.pan(dx, dy)
-    this._shapeLayer.pan(dx, dy)
+    this._viewport.pan(dx, dy)
     this._notify()
   }
 
   /** 重置缩放为 1×，平移恢复 0，同时同步到 ImageLayer 和 ShapeLayer */
   resetZoom(): void {
-    if (!this._imageLayer || !this._shapeLayer) return
-    this._scaleRate = 1
-    this._imageLayer.zoom(1)
-    this._shapeLayer.zoom(1)
+    this._viewport.reset()
     this._notify()
   }
 
@@ -285,7 +283,6 @@ export class AnnotationController {
   focusOnShape(shapeIdx: number): void {
     if (!this._shapeLayer || !this._imageLayer) return
     const shapeLayer = this._shapeLayer
-    const imageLayer = this._imageLayer
     const shape = shapeLayer.shapes[shapeIdx]
     if (!shape) return
 
@@ -337,9 +334,9 @@ export class AnnotationController {
     const targetTx = cx - cw / (2 * targetScale)
     const targetTy = cy - ch / (2 * targetScale)
 
-    const startScale = this._scaleRate
-    const startTx = shapeLayer.translateX
-    const startTy = shapeLayer.translateY
+    const startScale = this._viewport.scale
+    const startTx = this._viewport.translateX
+    const startTy = this._viewport.translateY
 
     this._cancelAnim()
     const duration = 400
@@ -349,26 +346,15 @@ export class AnnotationController {
       const elapsed = now - start
       const t = Math.min(elapsed / duration, 1)
       const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-
-      const s = startScale + (targetScale - startScale) * ease
-      const tx = startTx + (targetTx - startTx) * ease
-      const ty = startTy + (targetTy - startTy) * ease
-
-      imageLayer.translateX = tx
-      imageLayer.translateY = ty
-      shapeLayer.translateX = tx
-      shapeLayer.translateY = ty
-      this._scaleRate = s
-      imageLayer.zoom(s)
-      shapeLayer.zoom(s)
-      imageLayer._draw()
-      shapeLayer.drawHistory()
-
+      this._viewport.setTransform(
+        startScale + (targetScale - startScale) * ease,
+        startTx + (targetTx - startTx) * ease,
+        startTy + (targetTy - startTy) * ease
+      )
       if (t < 1) {
         this._rafId = requestAnimationFrame(step)
       } else {
         this._rafId = null
-        this._notify()
       }
     }
 
@@ -597,9 +583,9 @@ export class AnnotationController {
       return { scale: 1, translateX: 0, translateY: 0, mode: this.mode, group: this.currentGroup }
     }
     return {
-      scale: this._shapeLayer.scale,
-      translateX: this._shapeLayer.translateX,
-      translateY: this._shapeLayer.translateY,
+      scale: this._viewport.scale,
+      translateX: this._viewport.translateX,
+      translateY: this._viewport.translateY,
       mode: this.mode,
       group: this.currentGroup
     }
@@ -795,7 +781,7 @@ export class AnnotationController {
       if (handle === 'ROTATE') {
         self._state.rotating = true
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current] as RectShape
-        const img = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+        const img = self._viewport.toImage(e.offsetX, e.offsetY)
         const handleAngle = s.rotation - Math.PI / 2
         const clickAngle = Math.atan2(img.y - s.y, img.x - s.x)
         self._state.rotateStartAngle = clickAngle
@@ -808,7 +794,7 @@ export class AnnotationController {
         self._state.resizeDirection = handle
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current] as RectShape
         self._state.resizeCache = { x: s.x, y: s.y, w: s.w, h: s.h, rotation: s.rotation }
-        const img = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+        const img = self._viewport.toImage(e.offsetX, e.offsetY)
         self._state.resizeStartLocal = self._shapeLayer!._toLocal(img.x, img.y, s)
         return
       }
@@ -821,7 +807,7 @@ export class AnnotationController {
         if (poly && poly.points.length > 0) {
           const pts = poly.points
           for (let j = 0; j < pts.length; j++) {
-            const p = self._shapeLayer!.toCanvas(pts[j].x, pts[j].y)
+            const p = self._viewport.toCanvas(pts[j].x, pts[j].y)
             if (Math.hypot(e.offsetX - p.x, e.offsetY - p.y) <= 6) {
               hitIdx = self._shapeLayer!.shapes.length - 1
               vertexIdx = j
@@ -845,7 +831,7 @@ export class AnnotationController {
           if (insertIdx !== null) {
             const s = self._shapeLayer!.shapes[shapeHit]
             if (s.type === 'polygon' || s.type === 'polyline') {
-              const imgPt = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+              const imgPt = self._viewport.toImage(e.offsetX, e.offsetY)
               s.points.splice(insertIdx, 0, { x: imgPt.x, y: imgPt.y })
               self._saveSnapshot()
               self._shapeLayer!.drawHistory()
@@ -884,7 +870,7 @@ export class AnnotationController {
       if (self.interactionMode !== 'draw') return
 
       self._state.drawing = true
-      const imgPt = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+      const imgPt = self._viewport.toImage(e.offsetX, e.offsetY)
 
       if (self.mode === 'rect') {
         self._state.drawStart = imgPt
@@ -935,8 +921,7 @@ export class AnnotationController {
       if (self._state.panning) {
         const dx = self._state.panStart!.x - e.offsetX
         const dy = self._state.panStart!.y - e.offsetY
-        self._imageLayer!.pan(dx, dy)
-        self._shapeLayer!.pan(dx, dy)
+        self._viewport.pan(dx, dy)
         self._state.panStart = { x: e.offsetX, y: e.offsetY }
         return
       }
@@ -945,7 +930,7 @@ export class AnnotationController {
 
       if (self._state.rotating) {
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current] as RectShape
-        const img = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+        const img = self._viewport.toImage(e.offsetX, e.offsetY)
         const currentAngle = Math.atan2(img.y - s.y, img.x - s.x)
         const rawDelta = currentAngle - self._state.rotateStartAngle!
         const delta = normalizeAngle(rawDelta)
@@ -961,7 +946,7 @@ export class AnnotationController {
       if (self._state.resizing) {
         const s = self._shapeLayer!.shapes[self._shapeLayer!.current] as RectShape
         const c = self._state.resizeCache!
-        const img = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+        const img = self._viewport.toImage(e.offsetX, e.offsetY)
         // _toLocal 必须基于缓存的原始中心计算，避免每帧用被修改后的 s 做原点导致累积偏移
         const cos_n = Math.cos(-c.rotation),
           sin_n = Math.sin(-c.rotation)
@@ -1008,8 +993,8 @@ export class AnnotationController {
       }
 
       if (self._state.dragging) {
-        const dImgX = (self._state.dragStart!.x - e.offsetX) / self._shapeLayer!.scale
-        const dImgY = (self._state.dragStart!.y - e.offsetY) / self._shapeLayer!.scale
+        const dImgX = (self._state.dragStart!.x - e.offsetX) / self._viewport.scale
+        const dImgY = (self._state.dragStart!.y - e.offsetY) / self._viewport.scale
         const s = self._shapeLayer!.shapes[self._state.dragIdx]
         const c = self._state.dragCache!
         if (s.type === 'rect') {
@@ -1035,7 +1020,7 @@ export class AnnotationController {
       }
 
       if (self._state.drawing && self.mode === 'rect') {
-        const imgPt = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+        const imgPt = self._viewport.toImage(e.offsetX, e.offsetY)
         self._shapeLayer!.drawLiveRect(
           self._state.drawStart!.x,
           self._state.drawStart!.y,
@@ -1092,7 +1077,7 @@ export class AnnotationController {
       }
 
       if (self._state.drawing && self.mode === 'rect') {
-        const imgPt = self._shapeLayer!.toImage(e.offsetX, e.offsetY)
+        const imgPt = self._viewport.toImage(e.offsetX, e.offsetY)
         const start = self._state.drawStart!
         const end = imgPt
         if (Math.abs(start.x - end.x) > 2 && Math.abs(start.y - end.y) > 2) {
@@ -1176,14 +1161,7 @@ export class AnnotationController {
 
   /** 重置缩放为 1× 并归零平移（同时恢复 ImageLayer 和 ShapeLayer 的视口） */
   resetView(): void {
-    this._imageLayer?.zoom(1)
-    this._imageLayer?.pan(0, 0)
-    if (this._shapeLayer) {
-      this._shapeLayer.scale = 1
-      this._shapeLayer.translateX = 0
-      this._shapeLayer.translateY = 0
-      this._shapeLayer.drawHistory()
-    }
+    this._viewport.reset()
   }
 
   /** 解绑所有鼠标事件监听，销毁控制器（用于组件卸载前清理） */

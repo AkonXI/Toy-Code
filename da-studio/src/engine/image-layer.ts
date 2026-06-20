@@ -1,24 +1,23 @@
+import type { Viewport } from './viewport'
+
 /** 图像渲染层，负责加载和绘制底图，支持缩放与平移 */
 export class ImageLayer {
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
   img: HTMLImageElement | null
-  scale: number
-  translateX: number
-  translateY: number
+  _viewport: Viewport
 
   /**
    * @param canvas - 目标画布元素
+   * @param viewport - 共享视口
    */
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, viewport: Viewport) {
     this.canvas = canvas
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Failed to get 2d context')
     this.ctx = ctx
     this.img = null
-    this.scale = 1
-    this.translateX = 0
-    this.translateY = 0
+    this._viewport = viewport
   }
 
   /**
@@ -41,40 +40,32 @@ export class ImageLayer {
     })
   }
 
-  /** 内部重绘：清空画布 → 按当前 translate + scale 绘制图片 */
+  /** 内部重绘：清空画布 → 仅裁剪当前视口内的图像部分绘制 */
   _draw(): void {
     this.clear()
-    this.ctx.save()
-    this.ctx.translate(-this.translateX * this.scale, -this.translateY * this.scale)
-    this.ctx.scale(this.scale, this.scale)
-    if (this.img) {
-      this.ctx.drawImage(this.img, 0, 0)
-    }
-    this.ctx.restore()
+    if (!this.img) return
+    const { scale, translateX, translateY } = this._viewport
+    const imgW = this.img.width
+    const imgH = this.img.height
+    const vw = this.canvas.width / scale
+    const vh = this.canvas.height / scale
+
+    const sx = Math.max(0, translateX)
+    const sy = Math.max(0, translateY)
+    const sw = Math.min(imgW - sx, vw)
+    const sh = Math.min(imgH - sy, vh)
+    if (sw <= 0 || sh <= 0) return
+
+    const dx = Math.max(0, -translateX * scale)
+    const dy = Math.max(0, -translateY * scale)
+    const dw = sw * scale
+    const dh = sh * scale
+
+    this.ctx.drawImage(this.img, sx, sy, sw, sh, dx, dy, dw, dh)
   }
 
   /** 清空整个画布 */
   clear(): void {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-  }
-
-  /**
-   * 设置缩放倍率并重绘
-   * @param multi - 缩放倍数（1 = 原始大小）
-   */
-  zoom(multi: number): void {
-    this.scale = multi
-    this._draw()
-  }
-
-  /**
-   * 平移视口
-   * @param dx - 画布像素偏移量（水平）
-   * @param dy - 画布像素偏移量（垂直）
-   */
-  pan(dx: number, dy: number): void {
-    this.translateX += dx / this.scale
-    this.translateY += dy / this.scale
-    this._draw()
   }
 }

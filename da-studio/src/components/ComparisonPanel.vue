@@ -39,8 +39,13 @@ const compareActive = ref(false)
 let compareTimer: ReturnType<typeof setTimeout> | null = null
 
 const panelStyle = computed(() => {
-  const style: Record<string, string> = {
-    position: props.sticky ? 'sticky' : 'absolute'
+  const style: Record<string, string> = {}
+  if (props.teleport) {
+    style.position = 'fixed'
+  } else if (props.sticky) {
+    style.position = 'absolute'
+  } else {
+    style.position = 'relative'
   }
   if (props.offset.top != null) style.top = `${props.offset.top}px`
   if (props.offset.right != null) style.right = `${props.offset.right}px`

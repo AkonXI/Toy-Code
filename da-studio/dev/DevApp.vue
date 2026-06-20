@@ -30,16 +30,22 @@
         <div class="dev-section">
           <p class="dev-section-title">对比面板</p>
           <label class="dev-check">
-            <input v-model="comparisonTeleport" type="checkbox" />
+            <input v-model="comparisonTeleport" type="checkbox" @click="comparisonSticky = false" />
             <span>Teleport 到 body</span>
           </label>
           <label class="dev-check">
-            <input v-model="comparisonSticky" type="checkbox" />
+            <input v-model="comparisonSticky" type="checkbox" @click="comparisonTeleport = false" />
             <span>Sticky 定位</span>
           </label>
           <label class="dev-check">
-            <input v-model="comparisonMovable" type="checkbox" />
-            <span>Movable 拖动</span>
+            <input
+              v-model="comparisonMovable"
+              type="checkbox"
+              :disabled="!comparisonTeleport && !comparisonSticky"
+            />
+            <span :style="comparisonTeleport || comparisonSticky ? '' : 'opacity:0.4'"
+              >Movable 拖动</span
+            >
           </label>
 
           <div class="dev-offset-grid">
@@ -84,7 +90,7 @@
             :loading="loading"
             :teleport="comparisonTeleport"
             :sticky="comparisonSticky"
-            :movable="comparisonSticky && comparisonMovable"
+            :movable="(comparisonTeleport || comparisonSticky) && comparisonMovable"
             :offset="comparisonOffset"
             @select-template="templateIdx = $event"
             @select-test="testIdx = $event"
@@ -277,7 +283,7 @@ function generateRandomShapes(count: number): Shape[] {
   return shapes
 }
 
-const preloadedShapes: Shape[] = generateRandomShapes(randInt(500, 800))
+const preloadedShapes: Shape[] = generateRandomShapes(randInt(300, 500))
 
 let debugTimer: ReturnType<typeof setInterval> | null = null
 let restoringDebugScroll = false
@@ -307,11 +313,13 @@ function readEngineSnapshot(): Record<string, unknown> | null {
     historyIndex: engine._historyIndex,
     historyLength: engine._historyStack?.length ?? 0,
     state: engine._state,
+    viewport: {
+      scale: engine._viewport.scale,
+      translateX: engine._viewport.translateX,
+      translateY: engine._viewport.translateY
+    },
     shapeLayer: engine._shapeLayer
       ? {
-          scale: engine._shapeLayer.scale,
-          translateX: engine._shapeLayer.translateX,
-          translateY: engine._shapeLayer.translateY,
           current: engine._shapeLayer.current,
           shapeCount: engine._shapeLayer.shapes?.length ?? 0
         }
@@ -379,6 +387,10 @@ watch(debugEngine, () => {
   startDebugTimer()
 })
 
+watch([comparisonTeleport, comparisonSticky], ([t, s]) => {
+  if (!t && !s) comparisonMovable.value = false
+})
+
 onMounted(() => {
   refreshDebugSnapshot()
   startDebugTimer()
@@ -398,7 +410,8 @@ const debugJson = computed(() =>
         visible: showComparisonPanel.value,
         teleport: comparisonTeleport.value,
         sticky: comparisonSticky.value,
-        movable: comparisonMovable.value,
+        movable:
+          comparisonTeleport.value || comparisonSticky.value ? comparisonMovable.value : false,
         offset: comparisonOffset
       },
       viewport: {

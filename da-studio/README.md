@@ -350,17 +350,17 @@ const { templateIdx, testIdx, result, loading, compare, clearResult, clear } = u
 
 `ComparisonPanel` Props：
 
-| Prop          | 类型                                                               | 默认值                   | 说明                                   |
-| ------------- | ------------------------------------------------------------------ | ------------------------ | -------------------------------------- |
-| `shapes`      | `Shape[]`                                                          | 必填                     | 当前标注数据。                         |
-| `templateIdx` | `number \| null`                                                   | 必填                     | 模板标注索引。                         |
-| `testIdx`     | `number \| null`                                                   | 必填                     | 测试标注索引。                         |
-| `result`      | `MatchResult \| null`                                              | 必填                     | 比对结果。                             |
-| `loading`     | `boolean`                                                          | 必填                     | 比对计算中状态。                       |
-| `teleport`    | `boolean \| string`                                                | `false`                  | 是否 Teleport 到 `body` 或指定选择器。 |
-| `sticky`      | `boolean`                                                          | `false`                  | 使用 sticky 定位，否则使用 absolute。  |
-| `movable`     | `boolean`                                                          | `false`                  | 是否允许拖动面板。                     |
-| `offset`      | `{ top?: number; right?: number; bottom?: number; left?: number }` | `{ top: 12, right: 12 }` | 定位偏移。                             |
+| Prop          | 类型                                                               | 默认值                   | 说明                                       |
+| ------------- | ------------------------------------------------------------------ | ------------------------ | ------------------------------------------ |
+| `shapes`      | `Shape[]`                                                          | 必填                     | 当前标注数据。                             |
+| `templateIdx` | `number \| null`                                                   | 必填                     | 模板标注索引。                             |
+| `testIdx`     | `number \| null`                                                   | 必填                     | 测试标注索引。                             |
+| `result`      | `MatchResult \| null`                                              | 必填                     | 比对结果。                                 |
+| `loading`     | `boolean`                                                          | 必填                     | 比对计算中状态。                           |
+| `teleport`    | `boolean \| string`                                                | `false`                  | 是否 Teleport 到 `body` 或指定选择器。     |
+| `sticky`      | `boolean`                                                          | `false`                  | 绝对定位不占文档流，否则相对定位占文档流。 |
+| `movable`     | `boolean`                                                          | `false`                  | 是否允许拖动面板。                         |
+| `offset`      | `{ top?: number; right?: number; bottom?: number; left?: number }` | `{ top: 12, right: 12 }` | 定位偏移。                                 |
 
 `ComparisonPanel` Events：
 
@@ -465,14 +465,15 @@ import {
 import type { ControllerOpts, Shape, Meta } from 'da-studio/engine'
 ```
 
-| API                     | 类型      | 说明                                             |
-| ----------------------- | --------- | ------------------------------------------------ |
-| `AnnotationController`  | class     | 标注交互控制器。                                 |
-| `ImageLayer`            | class     | 背景图层，负责图片加载、缩放、平移和坐标转换。   |
-| `ShapeLayer`            | class     | 图形图层，负责绘制、命中检测、顶点和控制柄处理。 |
-| `DEFAULT_GROUPS`        | `Group[]` | 默认分组。                                       |
-| `buildGroupMap(groups)` | function  | 将分组数组转为按 `name` 索引的对象。             |
-| `deepCopy(value)`       | function  | JSON 深拷贝工具。                                |
+| API                     | 类型      | 说明                                                                |
+| ----------------------- | --------- | ------------------------------------------------------------------- |
+| `AnnotationController`  | class     | 标注交互控制器。                                                    |
+| `Viewport`              | class     | 共享视口状态，统一管理缩放/平移，通过 `onChange` 回调驱动图层重绘。 |
+| `ImageLayer`            | class     | 背景图层，负责图片加载、视口裁剪绘制。                              |
+| `ShapeLayer`            | class     | 图形图层，负责绘制、命中检测、顶点和控制柄处理。                    |
+| `DEFAULT_GROUPS`        | `Group[]` | 默认分组。                                                          |
+| `buildGroupMap(groups)` | function  | 将分组数组转为按 `name` 索引的对象。                                |
+| `deepCopy(value)`       | function  | JSON 深拷贝工具。                                                   |
 
 `AnnotationController` 常用方法：
 
@@ -507,10 +508,10 @@ pnpm --filter da-studio dev:app
 pnpm --filter da-studio build:app
 ```
 
-`build:app` 会执行三步：
+`dev:app` 会在启动前清理旧的构建产物（`rimraf build/app/dist build/app/dist-electron`）。`build:app` 会执行三步：
 
 1. `scripts/generate-app-icons.mjs` 从 `electron/renderer/public/icon.svg` 生成 `icon.png`、`icon.ico`、`icon.icns`。
-2. `vite build --config vite.electron.config.ts` 构建 renderer、main、preload 到 `build/app/dist` 和 `build/app/dist-electron`。
+2. `vite build --config vite.electron.config.ts` 构建 renderer（`root: 'electron/renderer'`）到 `build/app/dist`，构建 main、preload 到 `build/app/dist-electron`。
 3. `electron-builder` 生成当前平台安装包和解包目录到 `build/app/release`。
 
 Windows 产物示例：

@@ -40,18 +40,28 @@ export class ImageLayer {
     })
   }
 
-  /** 内部重绘：清空画布 → 按 transform 绘制整张图片（不裁剪） */
+  /** 内部重绘：清空画布 → 仅裁剪当前视口内的图像部分绘制 */
   _draw(): void {
     this.clear()
     if (!this.img) return
-    this.ctx.save()
-    this.ctx.translate(
-      -this._viewport.translateX * this._viewport.scale,
-      -this._viewport.translateY * this._viewport.scale
-    )
-    this.ctx.scale(this._viewport.scale, this._viewport.scale)
-    this.ctx.drawImage(this.img, 0, 0)
-    this.ctx.restore()
+    const { scale, translateX, translateY } = this._viewport
+    const imgW = this.img.width
+    const imgH = this.img.height
+    const vw = this.canvas.width / scale
+    const vh = this.canvas.height / scale
+
+    const sx = Math.max(0, translateX)
+    const sy = Math.max(0, translateY)
+    const sw = Math.min(imgW - sx, vw)
+    const sh = Math.min(imgH - sy, vh)
+    if (sw <= 0 || sh <= 0) return
+
+    const dx = Math.max(0, -translateX * scale)
+    const dy = Math.max(0, -translateY * scale)
+    const dw = sw * scale
+    const dh = sh * scale
+
+    this.ctx.drawImage(this.img, sx, sy, sw, sh, dx, dy, dw, dh)
   }
 
   /** 触发视口重绘（由 Viewport.onChange 回调调用） */

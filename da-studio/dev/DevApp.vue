@@ -64,7 +64,11 @@
       </aside>
 
       <div class="dev-stage">
-        <div class="dev-annotator-shell">
+        <div
+          class="dev-annotator-shell"
+          @mousemove="onStageMouseMove"
+          @mouseleave="onStageMouseLeave"
+        >
           <CanvasAnnotator ref="annotatorRef" :readonly="readonly" @change="onAnnotatorChange">
             <template #canvas-overlay>
               <ComparisonOverlay v-if="result" :result="result" :get-meta="getCurrentMeta" />
@@ -80,7 +84,7 @@
             :loading="loading"
             :teleport="comparisonTeleport"
             :sticky="comparisonSticky"
-            :movable="comparisonMovable"
+            :movable="comparisonSticky && comparisonMovable"
             :offset="comparisonOffset"
             @select-template="templateIdx = $event"
             @select-test="testIdx = $event"
@@ -132,8 +136,88 @@ const debugPreRef = ref<HTMLPreElement | null>(null)
 const debugStickToBottom = ref(true)
 const debugScrollTop = ref(0)
 
+const mouseCanvas = reactive({ x: 0, y: 0 })
+const mouseOnCanvas = ref(false)
+
+const viewportBounds = computed(() => {
+  const s = meta.value.scale
+  return {
+    left: meta.value.translateX,
+    top: meta.value.translateY,
+    right: meta.value.translateX + 600 / s,
+    bottom: meta.value.translateY + 600 / s
+  }
+})
+
+const mouseImage = computed(() => {
+  if (!mouseOnCanvas.value) return null
+  return {
+    x: mouseCanvas.x / meta.value.scale + meta.value.translateX,
+    y: mouseCanvas.y / meta.value.scale + meta.value.translateY
+  }
+})
+
+function onStageMouseMove(e: MouseEvent) {
+  const rect = (e.currentTarget as HTMLElement).querySelector('canvas')?.getBoundingClientRect()
+  if (!rect) return
+  mouseCanvas.x = e.clientX - rect.left
+  mouseCanvas.y = e.clientY - rect.top
+  mouseOnCanvas.value = true
+}
+
+function onStageMouseLeave() {
+  mouseOnCanvas.value = false
+}
+
+function shapeVisible(s: Shape): boolean {
+  const b = viewportBounds.value
+  if (s.type === 'rect') {
+    const hw = s.w / 2,
+      hh = s.h / 2
+    const cos = Math.cos(s.rotation || 0),
+      sin = Math.sin(s.rotation || 0)
+    const cs = [
+      { x: s.x - hw * cos - -hh * sin, y: s.y - hw * sin + -hh * cos },
+      { x: s.x + hw * cos - -hh * sin, y: s.y + hw * sin + -hh * cos },
+      { x: s.x + hw * cos - hh * sin, y: s.y + hw * sin + hh * cos },
+      { x: s.x - hw * cos - hh * sin, y: s.y - hw * sin + hh * cos }
+    ]
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity
+    for (const c of cs) {
+      if (c.x < minX) minX = c.x
+      if (c.x > maxX) maxX = c.x
+      if (c.y < minY) minY = c.y
+      if (c.y > maxY) maxY = c.y
+    }
+    return !(maxX < b.left || minX > b.right || maxY < b.top || minY > b.bottom)
+  }
+  if (s.type === 'point') {
+    const r = 6 / meta.value.scale
+    return !(s.x + r < b.left || s.x - r > b.right || s.y + r < b.top || s.y - r > b.bottom)
+  }
+  if (s.type === 'polyline' || s.type === 'polygon') {
+    if (s.points.length === 0) return false
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity
+    for (const p of s.points) {
+      if (p.x < minX) minX = p.x
+      if (p.x > maxX) maxX = p.x
+      if (p.y < minY) minY = p.y
+      if (p.y > maxY) maxY = p.y
+    }
+    return !(maxX < b.left || minX > b.right || maxY < b.top || minY > b.bottom)
+  }
+  return true
+}
+
 const { templateIdx, testIdx, result, loading, compare, clear, clearResult } = useComparison()
 
+const groups = ['red', 'yellow', 'blue', 'green']
 const preloadedMeta: Meta = {
   scale: 1,
   translateX: 0,
@@ -142,47 +226,58 @@ const preloadedMeta: Meta = {
   group: 'red'
 }
 
-const preloadedShapes: Shape[] = [
-  {
-    type: 'polyline',
-    group: 'red',
-    complete: true,
-    points: [
-      { x: 150, y: 210 },
-      { x: 230, y: 180 },
-      { x: 325, y: 240 },
-      { x: 430, y: 225 },
-      { x: 525, y: 295 }
-    ]
-  },
-  {
-    type: 'polyline',
-    group: 'blue',
-    complete: true,
-    points: [
-      { x: 150, y: 218 },
-      { x: 238, y: 190 },
-      { x: 322, y: 252 },
-      { x: 438, y: 236 },
-      { x: 526, y: 312 }
-    ]
-  },
-  {
-    type: 'rect',
-    group: 'green',
-    x: 330,
-    y: 405,
-    w: 210,
-    h: 86,
-    rotation: 0.12
-  },
-  {
-    type: 'point',
-    group: 'yellow',
-    x: 488,
-    y: 132
+function rand(min: number, max: number): number {
+  return Math.random() * (max - min) + min
+}
+
+function randInt(min: number, max: number): number {
+  return Math.floor(rand(min, max + 1))
+}
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+const IMG_W = 1920
+const IMG_H = 1080
+
+function generateRandomShapes(count: number): Shape[] {
+  const shapes: Shape[] = []
+  for (let i = 0; i < count; i++) {
+    const group = pick(groups)
+    const type = pick(['rect', 'point', 'polyline', 'polygon'] as const)
+    const cx = rand(100, IMG_W - 100)
+    const cy = rand(100, IMG_H - 100)
+    if (type === 'rect') {
+      shapes.push({
+        type: 'rect',
+        group,
+        x: cx,
+        y: cy,
+        w: rand(20, 120),
+        h: rand(20, 120),
+        rotation: rand(-0.5, 0.5)
+      })
+    } else if (type === 'point') {
+      shapes.push({ type: 'point', group, x: cx, y: cy })
+    } else {
+      const ptCount = randInt(3, 8)
+      const pts = Array.from({ length: ptCount }, () => ({
+        x: cx + rand(-80, 80),
+        y: cy + rand(-80, 80)
+      }))
+      shapes.push({
+        type,
+        group,
+        points: pts,
+        complete: true
+      })
+    }
   }
-]
+  return shapes
+}
+
+const preloadedShapes: Shape[] = generateRandomShapes(randInt(500, 800))
 
 let debugTimer: ReturnType<typeof setInterval> | null = null
 let restoringDebugScroll = false
@@ -306,12 +401,34 @@ const debugJson = computed(() =>
         movable: comparisonMovable.value,
         offset: comparisonOffset
       },
+      viewport: {
+        ...viewportBounds.value,
+        width: 600,
+        height: 600,
+        scale: meta.value.scale,
+        visibleShapes: shapes.value.filter(shapeVisible).length,
+        totalShapes: shapes.value.length
+      },
       component: {
         meta: meta.value,
         shapeCount: shapes.value.length,
         shortcutState: shortcutState.value,
-        shapes: shapes.value
+        shapes: shapes.value.map((s, i) => {
+          const vis = shapeVisible(s)
+          return { idx: i, visible: vis, ...s, ...(vis ? {} : { culled: true }) }
+        })
       },
+      mouse: mouseOnCanvas.value
+        ? {
+            canvas: { x: Math.round(mouseCanvas.x), y: Math.round(mouseCanvas.y) },
+            image: mouseImage.value
+              ? {
+                  x: Math.round(mouseImage.value.x * 100) / 100,
+                  y: Math.round(mouseImage.value.y * 100) / 100
+                }
+              : null
+          }
+        : null,
       comparison: {
         templateIdx: templateIdx.value,
         testIdx: testIdx.value,

@@ -1,5 +1,6 @@
 import type { Group } from './types'
 
+/** 默认 4 个标注分组：红/黄/蓝/绿 */
 export const DEFAULT_GROUPS: Group[] = [
   {
     name: 'red',
@@ -31,6 +32,11 @@ export const DEFAULT_GROUPS: Group[] = [
   }
 ]
 
+/**
+ * 将分组数组转为 name → Group 的字典
+ * @param groups - 分组配置数组
+ * @returns name 到 Group 的映射表
+ */
 export function buildGroupMap(groups: Group[]): Record<string, Group> {
   const map: Record<string, Group> = {}
   groups.forEach((g) => {
@@ -39,10 +45,20 @@ export function buildGroupMap(groups: Group[]): Record<string, Group> {
   return map
 }
 
+/**
+ * 深拷贝（基于 structuredClone）
+ * @param obj - 任意可克隆对象
+ * @returns 深拷贝副本
+ */
 export function deepCopy<T>(obj: T): T {
   return structuredClone(obj)
 }
 
+/**
+ * 将角度归约到 (-π, π] 范围
+ * @param delta - 原始角度（弧度）
+ * @returns 归一化后的角度
+ */
 export function normalizeAngle(delta: number): number {
   while (delta > Math.PI) delta -= 2 * Math.PI
   while (delta < -Math.PI) delta += 2 * Math.PI

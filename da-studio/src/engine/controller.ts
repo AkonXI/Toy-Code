@@ -15,12 +15,21 @@ import type {
   InteractionMode
 } from './types'
 
+/**
+ * 标注控制器 — 管理标注模式、撤销/重做、鼠标交互，协调 ImageLayer 与 ShapeLayer
+ * @param opts - 初始化选项（mode / interactionMode / readonly / onChange / groups）
+ */
 export class AnnotationController {
+  /** 当前绘制模式：rect / point / polyline / polygon */
   mode: string
+  /** 当前交互模式：draw（绘制） | select（选择/编辑） */
   interactionMode: InteractionMode
+  /** 是否只读（禁止编辑） */
   readonly: boolean
+  /** 图形/元数据变更时的回调 */
   onChange: (_shapes: Shape[], _meta: Meta) => void
   _groupMap: Record<string, Group>
+  /** 当前选中分组的 name */
   currentGroup: string
   _historyStack: { shapes: Shape[]; interactionMode: InteractionMode; mode: string }[]
   _historyIndex: number
@@ -79,6 +88,12 @@ export class AnnotationController {
     this._boundHandlers = null
   }
 
+  /**
+   * 挂载画布，绑定鼠标事件
+   * @param imageCanvas - 底图画布
+   * @param shapeCanvas - 图形画布
+   * @param imageSrc - 可选图片 URL，缺省时生成示例渐变图
+   */
   mount(
     imageCanvas: HTMLCanvasElement,
     shapeCanvas: HTMLCanvasElement,
@@ -105,37 +120,47 @@ export class AnnotationController {
     })
   }
 
+  /**
+   * 生成示例渐变图片（无外部图片时的默认底图）
+   * @returns data URL 格式的 1920×1080 渐变+网格图片
+   */
   private _generateSampleImage(): string {
     const c = document.createElement('canvas')
-    c.width = 800
-    c.height = 800
+    c.width = 1920
+    c.height = 1080
     const ctx = c.getContext('2d')
     if (!ctx) return ''
-    const g = ctx.createLinearGradient(0, 0, 800, 800)
+    const g = ctx.createLinearGradient(0, 0, 1920, 1080)
     g.addColorStop(0, '#e3f2fd')
     g.addColorStop(0.5, '#f3e5f5')
     g.addColorStop(1, '#e8f5e9')
     ctx.fillStyle = g
-    ctx.fillRect(0, 0, 800, 800)
+    ctx.fillRect(0, 0, 1920, 1080)
     ctx.strokeStyle = 'rgba(0,0,0,0.06)'
     ctx.lineWidth = 1
-    for (let i = 0; i <= 800; i += 50) {
+    for (let i = 0; i <= 1920; i += 50) {
       ctx.beginPath()
       ctx.moveTo(i, 0)
-      ctx.lineTo(i, 800)
+      ctx.lineTo(i, 1080)
       ctx.stroke()
+    }
+    for (let i = 0; i <= 1080; i += 50) {
       ctx.beginPath()
       ctx.moveTo(0, i)
-      ctx.lineTo(800, i)
+      ctx.lineTo(1920, i)
       ctx.stroke()
     }
     ctx.beginPath()
-    ctx.arc(400, 400, 6, 0, Math.PI * 2)
+    ctx.arc(960, 540, 6, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(0,0,0,0.2)'
     ctx.fill()
     return c.toDataURL()
   }
 
+  /**
+   * 设置绘制模式
+   * @param mode - 绘制模式：rect | point | polyline | polygon
+   */
   setMode(mode: string): void {
     if (!this._shapeLayer) return
     const poly = this._activePolygon()
@@ -159,6 +184,10 @@ export class AnnotationController {
     this._notify()
   }
 
+  /**
+   * 设置交互模式
+   * @param mode - draw（绘制）| select（选择/编辑）
+   */
   setInteractionMode(mode: InteractionMode): void {
     if (mode === 'select' && this.interactionMode === 'draw' && this._shapeLayer) {
       this.completePolygon()
@@ -186,11 +215,19 @@ export class AnnotationController {
     this._notify()
   }
 
+  /**
+   * 设置只读状态
+   * @param v - true 为只读，自动切换 select 模式
+   */
   setReadonly(v: boolean): void {
     this.readonly = v
     if (v) this.setInteractionMode('select')
   }
 
+  /**
+   * 设置当前绘图分组
+   * @param color - 分组 name（如 'red'、'blue'）
+   */
   setGroup(color: string): void {
     if (!this._shapeLayer) return
     if (!this._groupMap[color]) return
@@ -198,6 +235,10 @@ export class AnnotationController {
     this._shapeLayer._group = color
   }
 
+  /**
+   * 缩放视口
+   * @param delta - 增量步长（>0 放大, <0 缩小），受 _minScale/_maxScale 限制
+   */
   zoom(delta: number): void {
     if (!this._imageLayer || !this._shapeLayer) return
     const newRate = this._scaleRate + delta
@@ -208,6 +249,11 @@ export class AnnotationController {
     this._notify()
   }
 
+  /**
+   * 平移视口
+   * @param dx - 画布像素偏移（水平）
+   * @param dy - 画布像素偏移（垂直）
+   */
   pan(dx: number, dy: number): void {
     if (!this._imageLayer || !this._shapeLayer) return
     this._imageLayer.pan(dx, dy)
@@ -215,6 +261,7 @@ export class AnnotationController {
     this._notify()
   }
 
+  /** 重置缩放为 1×，平移恢复 0，同时同步到 ImageLayer 和 ShapeLayer */
   resetZoom(): void {
     if (!this._imageLayer || !this._shapeLayer) return
     this._scaleRate = 1
@@ -223,6 +270,7 @@ export class AnnotationController {
     this._notify()
   }
 
+  /** 取消正在执行的聚焦动画 */
   private _cancelAnim(): void {
     if (this._rafId !== null) {
       cancelAnimationFrame(this._rafId)
@@ -230,6 +278,10 @@ export class AnnotationController {
     }
   }
 
+  /**
+   * 平滑聚焦到指定图形
+   * @param shapeIdx - 图形在 shapes 中的索引
+   */
   focusOnShape(shapeIdx: number): void {
     if (!this._shapeLayer || !this._imageLayer) return
     const shapeLayer = this._shapeLayer
@@ -323,18 +375,21 @@ export class AnnotationController {
     this._rafId = requestAnimationFrame(step)
   }
 
+  /** 撤销到上一个快照（越界时无操作，用 canUndo 预先判断） */
   undo(): void {
     if (this._historyIndex < 1) return
     this._historyIndex--
     this._restoreSnapshot()
   }
 
+  /** 重做到下一个快照（越界时无操作，用 canRedo 预先判断） */
   redo(): void {
     if (this._historyIndex >= this._historyStack.length - 1) return
     this._historyIndex++
     this._restoreSnapshot()
   }
 
+  /** 从历史栈当前索引恢复图形和交互模式快照 */
   _restoreSnapshot(): void {
     if (!this._shapeLayer) return
     const entry = this._historyStack[this._historyIndex]
@@ -358,6 +413,7 @@ export class AnnotationController {
     this._notify()
   }
 
+  /** 清空所有图形（保存当前快照到历史栈，可撤销） */
   clear(): void {
     if (!this._shapeLayer) return
     this._shapeLayer.clearAll()
@@ -366,14 +422,23 @@ export class AnnotationController {
     this._notify()
   }
 
+  /**
+   * 是否可撤销
+   * @returns historyIndex > 0 时 true
+   */
   canUndo(): boolean {
     return this._historyIndex > 0
   }
 
+  /**
+   * 是否可重做
+   * @returns historyIndex < 栈顶时 true
+   */
   canRedo(): boolean {
     return this._historyIndex < this._historyStack.length - 1
   }
 
+  /** 完成绘制中的多边形（>=3 个点），触发 _onPolygonComplete 回调 */
   completePolygon(): void {
     if (!this._shapeLayer) return
     const idx = this._shapeLayer.shapes.length - 1
@@ -388,6 +453,10 @@ export class AnnotationController {
     if (this._onPolygonComplete) this._onPolygonComplete(poly)
   }
 
+  /**
+   * 当前是否正在绘制多边形
+   * @returns 有未 complete 的多边形时 true
+   */
   isPolygonActive(): boolean {
     if (!this._shapeLayer) return false
     if (this.mode !== 'polygon') return false
@@ -395,6 +464,7 @@ export class AnnotationController {
     return last && last.type === 'polygon' && !last.complete
   }
 
+  /** 完成绘制中的折线（>=2 个点） */
   completePolyline(): void {
     if (!this._shapeLayer) return
     const idx = this._shapeLayer.shapes.length - 1
@@ -408,6 +478,10 @@ export class AnnotationController {
     this._notify()
   }
 
+  /**
+   * 当前是否正在绘制折线
+   * @returns 有未 complete 的折线时 true
+   */
   isPolylineActive(): boolean {
     if (!this._shapeLayer) return false
     if (this.mode !== 'polyline') return false
@@ -415,6 +489,10 @@ export class AnnotationController {
     return last && last.type === 'polyline' && !last.complete
   }
 
+  /**
+   * 获取当前选中的图形
+   * @returns shapes 中 current 指向的图形浅引用，无选中时 null
+   */
   getSelectedShape(): Shape | null {
     if (!this._shapeLayer) return null
     const idx = this._shapeLayer.current
@@ -424,10 +502,19 @@ export class AnnotationController {
     return null
   }
 
+  /**
+   * 根据 name 获取分组配置
+   * @param name - 分组名称
+   * @returns 分组配置，不存在则 undefined
+   */
   getGroup(name: string): Group | undefined {
     return this._groupMap[name]
   }
 
+  /**
+   * 修改当前选中图形的分组
+   * @param color - 目标分组 name
+   */
   setSelectedShapeGroup(color: string): void {
     if (!this._shapeLayer) return
     if (!this._groupMap[color]) return
@@ -440,6 +527,7 @@ export class AnnotationController {
     }
   }
 
+  /** 删除当前选中的图形（保存快照，可撤销） */
   deleteSelected(): void {
     if (!this._shapeLayer) return
     const idx = this._shapeLayer.current
@@ -451,6 +539,10 @@ export class AnnotationController {
     this._notify()
   }
 
+  /**
+   * 按索引选中图形（取消其他图形的选中状态）
+   * @param idx - 图形索引，超出范围则取消所有选中
+   */
   selectShapeByIndex(idx: number): void {
     if (!this._shapeLayer) return
     this._shapeLayer.shapes.forEach((s) => {
@@ -466,6 +558,11 @@ export class AnnotationController {
     this._notify()
   }
 
+  /**
+   * 通过画布像素坐标选中图形
+   * @param pixelX - 画布 X 坐标
+   * @param pixelY - 画布 Y 坐标
+   */
   selectShape(pixelX: number, pixelY: number): void {
     if (!this._shapeLayer) return
     this._shapeLayer.shapes.forEach((s) => {
@@ -482,11 +579,19 @@ export class AnnotationController {
     this._saveSnapshot()
   }
 
+  /**
+   * 获取所有图形的深拷贝
+   * @returns 全部图形的深拷贝数组
+   */
   getShapes(): Shape[] {
     if (!this._shapeLayer) return []
     return this._shapeLayer.shapes.map((s) => deepCopy(s))
   }
 
+  /**
+   * 获取当前视图元数据
+   * @returns { scale, translateX, translateY, mode, group }
+   */
   getMeta(): Meta {
     if (!this._shapeLayer) {
       return { scale: 1, translateX: 0, translateY: 0, mode: this.mode, group: this.currentGroup }
@@ -500,11 +605,19 @@ export class AnnotationController {
     }
   }
 
+  /**
+   * 获取 shapes 末尾的最后一个图形（绘制中的折线/多边形）
+   * @returns 末尾图形，空时 undefined
+   */
   getLastShape(): Shape | undefined {
     if (!this._shapeLayer) return undefined
     return this._shapeLayer.shapes[this._shapeLayer.shapes.length - 1]
   }
 
+  /**
+   * 替换全部图形（深拷贝），重置历史栈为仅当前状态
+   * @param shapes - 新的图形数组
+   */
   setShapes(shapes: Shape[]): void {
     if (!this._shapeLayer) return
     this._shapeLayer.shapes = deepCopy(shapes)
@@ -513,16 +626,19 @@ export class AnnotationController {
     this._resetHistoryToCurrent()
   }
 
+  /** 确保历史栈不为空（供外部初始化无操作时调用，避免 undo/redo 异常） */
   seedHistory(): void {
     this._seedHistory()
   }
 
   /* ---- Internal ---- */
 
+  /** 触发 onChange 回调（同步，立即执行） */
   _notify(): void {
     this.onChange(this.getShapes(), this.getMeta())
   }
 
+  /** 触发 onChange 回调（通过 rAF 去抖，用于高频调用场景如拖拽中） */
   _liveNotify(): void {
     if (this._rafId !== null) return
     this._rafId = requestAnimationFrame(() => {
@@ -531,6 +647,7 @@ export class AnnotationController {
     })
   }
 
+  /** 保存当前图形快照到历史栈（上限 100） */
   _saveSnapshot(): void {
     if (!this._shapeLayer) return
     if (this._historyIndex < this._historyStack.length - 1) {
@@ -545,6 +662,7 @@ export class AnnotationController {
     this._historyIndex = this._historyStack.length - 1
   }
 
+  /** 确保初始快照存在（历史栈为空时写入） */
   _seedHistory(): void {
     if (!this._shapeLayer) return
     if (this._historyStack.length === 0) {
@@ -557,6 +675,7 @@ export class AnnotationController {
     }
   }
 
+  /** 重置历史栈为仅包含当前状态（清空 undo/redo 历史） */
   _resetHistoryToCurrent(): void {
     if (!this._shapeLayer) return
     this._historyStack = [
@@ -569,6 +688,11 @@ export class AnnotationController {
     this._historyIndex = 0
   }
 
+  /**
+   * 根据鼠标位置和交互状态更新画布光标样式
+   * draw 模式：crosshair；矩形手柄：resize/grab；图形上方：move/pointer
+   * @param e - 鼠标事件
+   */
   _setCursor(e: MouseEvent): void {
     if (!this._shapeLayer) return
     const canvas = this._shapeLayer.canvas
@@ -609,6 +733,10 @@ export class AnnotationController {
 
   /* ---- Polygon helpers ---- */
 
+  /**
+   * 获取当前绘制中的多边形
+   * @returns 最后一个未 complete 的 polygon，无则 null
+   */
   _activePolygon(): PolygonShape | null {
     if (!this._shapeLayer) return null
     const last = this._shapeLayer.shapes[this._shapeLayer.shapes.length - 1]
@@ -616,6 +744,10 @@ export class AnnotationController {
     return null
   }
 
+  /**
+   * 获取当前绘制中的折线
+   * @returns 最后一个未 complete 的 polyline，无则 null
+   */
   _activePolyline(): PolylineShape | null {
     if (!this._shapeLayer) return null
     const last = this._shapeLayer.shapes[this._shapeLayer.shapes.length - 1]
@@ -625,6 +757,7 @@ export class AnnotationController {
 
   /* ---- Event handlers ---- */
 
+  /** 绑定鼠标事件处理器（返回解绑所需的引用），注册 mousedown/mousemove/mouseup/mouseout/wheel */
   _bindHandlers(): HandlerReturn {
     this._seedHistory()
     if (!this._shapeLayer) throw new Error('ShapeLayer not initialized')
@@ -999,21 +1132,37 @@ export class AnnotationController {
     return { onMouseDown, onMouseMove, onMouseUp, onMouseLeave, onWheel }
   }
 
+  /**
+   * 加载新图片到底图层
+   * @param src - 图片 URL
+   * @returns 加载完成时 resolve
+   */
   loadImage(src: string): Promise<void> {
     return this._imageLayer!.loadImage(src).then(() => this.resetView())
   }
 
+  /**
+   * 加载图形和视图状态（loadAnnotationState 的别名）
+   * @param shapes - 图形数组
+   * @param meta - 视图元数据
+   */
   loadShapes(shapes: Shape[], meta: Meta): void {
     this.loadAnnotationState(shapes, meta)
   }
 
+  /**
+   * 加载标注状态（图形 + 视图），重置历史
+   * @param shapes - 图形数组
+   * @param meta - 视图元数据（scale / translate / mode / group）
+   */
   loadAnnotationState(shapes: Shape[], meta: Meta): void {
     if (this._shapeLayer) {
       this._shapeLayer.shapes = deepCopy(shapes)
       this._shapeLayer.current = this._shapeLayer.shapes.findIndex((s) => s.current)
-      this._shapeLayer.scale = meta.scale
-      this._shapeLayer.translateX = meta.translateX
-      this._shapeLayer.translateY = meta.translateY
+      // 注释掉以保持当前视口不变，避免缩放/平移后加载数据时背景图错位
+      // this._shapeLayer.scale = meta.scale
+      // this._shapeLayer.translateX = meta.translateX
+      // this._shapeLayer.translateY = meta.translateY
       this.mode = meta.mode || this.mode
       this._shapeLayer.mode = this.mode
       if (meta.group && this._groupMap[meta.group]) {
@@ -1025,6 +1174,7 @@ export class AnnotationController {
     }
   }
 
+  /** 重置缩放为 1× 并归零平移（同时恢复 ImageLayer 和 ShapeLayer 的视口） */
   resetView(): void {
     this._imageLayer?.zoom(1)
     this._imageLayer?.pan(0, 0)
@@ -1036,6 +1186,7 @@ export class AnnotationController {
     }
   }
 
+  /** 解绑所有鼠标事件监听，销毁控制器（用于组件卸载前清理） */
   destroy(): void {
     if (!this._shapeLayer || !this._boundHandlers) return
     const c = this._shapeLayer.canvas
